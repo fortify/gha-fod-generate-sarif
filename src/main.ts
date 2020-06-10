@@ -1,8 +1,16 @@
 import * as core from '@actions/core';
 import * as agent from 'superagent';
 import prefix from 'superagent-prefix';
+import Throttle from 'superagent-throttle';
 import * as sarif from 'sarif';
 import htmlToText from 'html-to-text';
+
+const throttle10perSec = new Throttle({
+    active: true,     // set false to pause queue
+    rate: 10,          // how many requests can be sent every `ratePer`
+    ratePer: 1000,   // number of ms in which `rate` requests may be sent
+    concurrent: 10     // how many requests can be sent concurrently
+  })
 
 function getApiBaseUrl(baseUrlString: string) : URL {
     let baseUrl = new URL(baseUrlString);
@@ -114,6 +122,7 @@ async function processAllVulnerabilities(agent: any, releaseId:string, offset:nu
 
 async function processVulnerability(agent: any, releaseId:string, vuln: any) : Promise<void> {
     return await agent.get(`/api/v3/releases/${releaseId}/vulnerabilities/${vuln.vulnId}/details`)
+        .use(throttle10perSec.plugin())
         .then((resp: any)=>{
             const details = resp.body;
             //console.log(vuln);
@@ -128,6 +137,9 @@ function getSarifResult(vuln:any, details:any) : sarif.Result {
         ruleId: details.ruleId,
         message: { text: convertHtmlToText(details.summary) },
         level: getSarifLevel(vuln.severity),
+        partialFingerprints: {
+            issueInstanceId: vuln.instanceId
+        },
         locations: [
             {
                 physicalLocation: {

@@ -1,5 +1,6 @@
 node_modules/
 runner/
+*.sarif
 
 # Rest of the file pulled from https://github.com/github/gitignore/blob/master/Node.gitignore
 # Logs

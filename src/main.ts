@@ -2,9 +2,20 @@ import * as core from '@actions/core';
 import request from 'superagent';
 import prefix from 'superagent-prefix';
 import Throttle from 'superagent-throttle';
-import * as sarif from './sarif/sarif-schema-2.1.0';
+import sarif from './sarif/sarif-schema-2.1.0';
 import htmlToText from 'html-to-text';
-import { promises } from 'fs';
+import fs from 'fs-extra';
+
+const INPUT = {
+    base_url: core.getInput('base-url', { required: true }),
+    tenant: core.getInput('tenant', { required: false }),
+    user: core.getInput('user', { required: false }),
+    password: core.getInput('password', { required: false }),
+    client_id: core.getInput('client-id', { required: false }),
+    client_secret: core.getInput('client-secret', { required: false }),
+    release_id: core.getInput('release-id', { required: true }),
+    output: core.getInput('output', { required: true })
+}
 
 const throttle10perSec = new Throttle({
     active: true,     // set false to pause queue
@@ -30,41 +41,39 @@ function getAuthScope() {
 }
 
 function getPasswordAuthPayload() {
-    const tenant = core.getInput('tenant', { required: true });
-    const user = core.getInput('user', { required: true });
-    const password = core.getInput('password', { required: true });
+    
 
     return {
         scope: getAuthScope(),
         grant_type: 'password',
-        username: tenant + '\\' + user,
-        password: password
+        username: INPUT.tenant + '\\' + INPUT.user,
+        password: INPUT.password
     };
 }
 
 function getClientCredentialsAuthPayload() {
-    const client_id = core.getInput('client-id', { required: true });
-    const client_secret = core.getInput('client-secret', { required: true });
 
     return {
         scope: getAuthScope(),
         grant_type: 'client_credentials',
-        client_id: client_id,
-        client_secret: client_secret
+        client_id: INPUT.client_id,
+        client_secret: INPUT.client_secret
     };
 }
 
 function getAuthPayload() {
-    if ( core.getInput('user', { required: false }) ) {
+    if ( INPUT.client_id && INPUT.client_secret ) {
+        return getClientCredentialsAuthPayload();
+    } else if ( INPUT.tenant && INPUT.user && INPUT.password ) {
         return getPasswordAuthPayload();
     } else {
-        return getClientCredentialsAuthPayload();
+        throw 'Either client-id and client-secret, or tenant, user and password must be specified';
     }
 }
 
 function getReleaseId() : string {
     // TODO Add support for getting release id by application/release name
-    return core.getInput('release-id', { required: true });
+    return INPUT.release_id;
 }
 
 type sarifLog = sarif.StaticAnalysisResultsFormatSARIFVersion210JSONSchema;
@@ -89,7 +98,7 @@ function getLog() : sarifLog {
 
 async function main() {
     const auth = getAuthPayload();
-    authenticate('https://ams.fortify.com', auth)
+    authenticate(INPUT.base_url, auth)
         .then(process)
         .catch(resp=>console.error(resp));
 }
@@ -112,7 +121,11 @@ function createAgent(apiBaseUrl:string, tokenResponseBody:any) : request.SuperAg
 async function process(request: request.SuperAgentStatic) : Promise<void> {
     const releaseId = getReleaseId();
     return processAllVulnerabilities(getLog(), request, releaseId, 0)
-        .then(sarifLog=>console.info(JSON.stringify(sarifLog, null, 2)));
+        .then(writeSarif);
+}
+
+async function writeSarif(sarifLog: sarifLog) : Promise<void> {
+    return fs.writeFile(INPUT.output, JSON.stringify(sarifLog, null, 2));
 }
 
 async function processAllVulnerabilities(sarifLog: sarifLog, request: request.SuperAgentStatic, releaseId:string, offset:number) : Promise<sarifLog> {

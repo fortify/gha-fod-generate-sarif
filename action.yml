@@ -23,10 +23,10 @@ inputs:
   release-id:
     description: 'FoD Release ID from which to download FPR file'
     required: true
-  outputDir:
-    description: 'Directory to store SARIF file'
+  output:
+    description: 'Name and location of generated SARIF file'
     required: true
-    default: '.'
+    default: './output.sarif'
 outputs:
   sarif:
     description: 'Full path to the generated SARIF file'

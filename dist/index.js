@@ -13866,7 +13866,8 @@ function process(request) {
 }
 function writeSarif(sarifLog) {
     return __awaiter(this, void 0, void 0, function* () {
-        return fs_extra_1.default.writeFile(INPUT.output, JSON.stringify(sarifLog, null, 2));
+        const file = INPUT.output;
+        return fs_extra_1.default.ensureFile(file).then(() => fs_extra_1.default.writeJSON(file, sarifLog, { spaces: 2 }));
     });
 }
 function processAllVulnerabilities(sarifLog, request, releaseId, offset) {

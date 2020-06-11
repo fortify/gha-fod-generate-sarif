@@ -5,6 +5,7 @@ import Throttle from 'superagent-throttle';
 import sarif from './sarif/sarif-schema-2.1.0';
 import htmlToText from 'html-to-text';
 import fs from 'fs-extra';
+import path from 'path';
 
 const INPUT = {
     base_url: core.getInput('base-url', { required: true }),
@@ -41,8 +42,6 @@ function getAuthScope() {
 }
 
 function getPasswordAuthPayload() {
-    
-
     return {
         scope: getAuthScope(),
         grant_type: 'password',
@@ -125,7 +124,8 @@ async function process(request: request.SuperAgentStatic) : Promise<void> {
 }
 
 async function writeSarif(sarifLog: sarifLog) : Promise<void> {
-    return fs.writeFile(INPUT.output, JSON.stringify(sarifLog, null, 2));
+    const file = INPUT.output;
+    return fs.ensureFile(file).then(()=>fs.writeJSON(file, sarifLog, {spaces: 2}));
 }
 
 async function processAllVulnerabilities(sarifLog: sarifLog, request: request.SuperAgentStatic, releaseId:string, offset:number) : Promise<sarifLog> {

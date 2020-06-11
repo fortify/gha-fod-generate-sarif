@@ -123,7 +123,6 @@ async function processAllVulnerabilities(sarifLog: sarifLog, request: request.Su
         .then(
             resp=>{
                 const vulns = resp.body.items;
-                //vulns.forEach((vuln:any)=>processVulnerability(sarifLog, request, releaseId, vuln));
                 return Promise.all(vulns.map((vuln:any)=>processVulnerability(sarifLog, request, releaseId, vuln)))
                 .then(()=>{
                     if ( resp.body.totalCount>offset+limit ) {
@@ -141,7 +140,6 @@ async function processVulnerability(sarifLog: sarifLog, request: request.SuperAg
         .use(throttle10perSec.plugin())
         .then(resp=>{
             const details = resp.body;
-            console.info(`Processing vuln ${vuln.instanceId}`);
             sarifLog.runs[0].tool.driver.rules?.push(getSarifReportingDescriptor(vuln, details));
             sarifLog.runs[0].results?.push(getSarifResult(vuln, details));
         })

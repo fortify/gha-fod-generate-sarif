@@ -12095,7 +12095,6 @@ function processAllVulnerabilities(sarifLog, request, releaseId, offset) {
             .query({ offset: offset, limit: limit })
             .then(resp => {
             const vulns = resp.body.items;
-            //vulns.forEach((vuln:any)=>processVulnerability(sarifLog, request, releaseId, vuln));
             return Promise.all(vulns.map((vuln) => processVulnerability(sarifLog, request, releaseId, vuln)))
                 .then(() => {
                 if (resp.body.totalCount > offset + limit) {
@@ -12114,7 +12113,6 @@ function processVulnerability(sarifLog, request, releaseId, vuln) {
             .then(resp => {
             var _a, _b;
             const details = resp.body;
-            console.info(`Processing vuln ${vuln.instanceId}`);
             (_a = sarifLog.runs[0].tool.driver.rules) === null || _a === void 0 ? void 0 : _a.push(getSarifReportingDescriptor(vuln, details));
             (_b = sarifLog.runs[0].results) === null || _b === void 0 ? void 0 : _b.push(getSarifResult(vuln, details));
         })

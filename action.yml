@@ -23,6 +23,9 @@ inputs:
   release-id:
     description: 'FoD Release ID from which to download FPR file'
     required: true
+  uri-prefix:
+    description: 'Optional uri prefix for SARIF file locations'
+    required: false
   output:
     description: 'Name and location of generated SARIF file'
     required: true

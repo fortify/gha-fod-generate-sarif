@@ -13765,6 +13765,7 @@ const INPUT = {
     client_id: core.getInput('client-id', { required: false }),
     client_secret: core.getInput('client-secret', { required: false }),
     release_id: core.getInput('release-id', { required: true }),
+    uri_prefix: core.getInput('uri-prefix', { required: false }),
     output: core.getInput('output', { required: true })
 };
 const throttle10perSec = new superagent_throttle_1.default({
@@ -13913,7 +13914,7 @@ function getSarifResult(vuln, details) {
             {
                 physicalLocation: {
                     artifactLocation: {
-                        uri: vuln.primaryLocationFull
+                        uri: INPUT.uri_prefix + vuln.primaryLocationFull
                     },
                     region: {
                         startLine: vuln.lineNumber,

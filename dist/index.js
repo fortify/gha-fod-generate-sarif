@@ -12049,7 +12049,6 @@ function getLog() {
                 tool: {
                     driver: {
                         name: 'Fortify',
-                        fullName: 'Fortify on Demand',
                         rules: []
                     }
                 },
@@ -12137,7 +12136,7 @@ function getSarifResult(vuln, details) {
                         startLine: vuln.lineNumber,
                         endLine: vuln.lineNumber,
                         startColumn: 0,
-                        endColumn: undefined
+                        endColumn: 80
                     }
                 }
             }

@@ -78,7 +78,6 @@ function getLog() : sarifLog {
                 tool: {
                     driver: { 
                         name: 'Fortify',
-                        fullName: 'Fortify on Demand',
                         rules: []
                     }
                 }
@@ -164,7 +163,7 @@ function getSarifResult(vuln:any, details:any) : sarif.Result {
                         startLine: vuln.lineNumber,
                         endLine: vuln.lineNumber,
                         startColumn: 0,
-                        endColumn: undefined
+                        endColumn: 80
                     }
                 }
             }

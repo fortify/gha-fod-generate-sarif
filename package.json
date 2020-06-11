@@ -30,7 +30,6 @@
   "homepage": "https://github.com/fortify-actions/fod-generate-sarif#readme",
   "dependencies": {
     "@actions/core": "^1.2.4",
-    "@types/sarif": "^2.1.2",
     "html-to-text": "^5.1.1",
     "superagent": "^5.2.2",
     "superagent-prefix": "0.0.2",
@@ -43,6 +42,7 @@
     "@types/superagent-prefix": "0.0.3",
     "eslint": "^7.1.0",
     "husky": "^4.2.5",
-    "prettier": "^2.0.5"
+    "prettier": "^2.0.5",
+    "typescript": "^3.9.5"
   }
 }

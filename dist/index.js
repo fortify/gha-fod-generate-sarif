@@ -11951,27 +11951,40 @@ module.exports = {
 
 "use strict";
 
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
 var __importStar = (this && this.__importStar) || function (mod) {
     if (mod && mod.__esModule) return mod;
     var result = {};
-    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
-    result["default"] = mod;
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
     return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
 };
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const core = __importStar(__webpack_require__(612));
-const agent = __importStar(__webpack_require__(988));
+const superagent_1 = __importDefault(__webpack_require__(988));
 const superagent_prefix_1 = __importDefault(__webpack_require__(161));
 const superagent_throttle_1 = __importDefault(__webpack_require__(421));
 const html_to_text_1 = __importDefault(__webpack_require__(33));
@@ -11990,18 +12003,6 @@ function getApiBaseUrl(baseUrlString) {
 }
 function getApiBaseUrlString(baseUrlString) {
     return getApiBaseUrl(baseUrlString).toString();
-}
-function authenticate(baseUrlString, auth) {
-    return __awaiter(this, void 0, void 0, function* () {
-        const apiBaseUrl = getApiBaseUrlString(baseUrlString);
-        const tokenEndPoint = `${apiBaseUrl}/oauth/token`;
-        return agent.post(tokenEndPoint)
-            .type('form')
-            .send(auth)
-            .then(resp => agent.agent()
-            .set('Authorization', 'Bearer ' + resp.body.access_token)
-            .use(superagent_prefix_1.default(apiBaseUrl)));
-    });
 }
 function getAuthScope() {
     return "view-apps view-issues";
@@ -12041,14 +12042,18 @@ function getReleaseId() {
 }
 function getLog() {
     return {
+        $schema: 'https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json',
         version: '2.1.0',
         runs: [
             {
                 tool: {
                     driver: {
-                        name: 'Fortify'
+                        name: 'Fortify',
+                        fullName: 'Fortify on Demand',
+                        rules: []
                     }
-                }
+                },
+                results: []
             }
         ]
     };
@@ -12061,36 +12066,59 @@ function main() {
             .catch(resp => console.error(resp));
     });
 }
-function process(agent) {
+function authenticate(baseUrlString, auth) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const apiBaseUrl = getApiBaseUrlString(baseUrlString);
+        const tokenEndPoint = `${apiBaseUrl}/oauth/token`;
+        return superagent_1.default.post(tokenEndPoint)
+            .type('form')
+            .send(auth)
+            .then(resp => createAgent(baseUrlString, resp.body));
+    });
+}
+function createAgent(apiBaseUrl, tokenResponseBody) {
+    return superagent_1.default.agent()
+        .set('Authorization', 'Bearer ' + tokenResponseBody.access_token)
+        .use(superagent_prefix_1.default(apiBaseUrl));
+}
+function process(request) {
     return __awaiter(this, void 0, void 0, function* () {
         const releaseId = getReleaseId();
-        processAllVulnerabilities(agent, releaseId, 0);
+        return processAllVulnerabilities(getLog(), request, releaseId, 0)
+            .then(sarifLog => console.info(JSON.stringify(sarifLog, null, 2)));
     });
 }
-function processAllVulnerabilities(agent, releaseId, offset) {
+function processAllVulnerabilities(sarifLog, request, releaseId, offset) {
     return __awaiter(this, void 0, void 0, function* () {
         const limit = 50;
-        return yield agent.get(`/api/v3/releases/${releaseId}/vulnerabilities`)
+        return request.get(`/api/v3/releases/${releaseId}/vulnerabilities`)
             .query({ offset: offset, limit: limit })
-            .then((resp) => {
-            resp.body.items.forEach((vuln) => processVulnerability(agent, releaseId, vuln));
-            if (resp.body.totalCount > offset + limit) {
-                processAllVulnerabilities(agent, releaseId, offset + limit);
-            }
-        });
+            .then(resp => {
+            const vulns = resp.body.items;
+            //vulns.forEach((vuln:any)=>processVulnerability(sarifLog, request, releaseId, vuln));
+            return Promise.all(vulns.map((vuln) => processVulnerability(sarifLog, request, releaseId, vuln)))
+                .then(() => {
+                if (resp.body.totalCount > offset + limit) {
+                    processAllVulnerabilities(sarifLog, request, releaseId, offset + limit);
+                }
+                return sarifLog;
+            });
+        })
+            .catch(err => { throw err; });
     });
 }
-function processVulnerability(agent, releaseId, vuln) {
+function processVulnerability(sarifLog, request, releaseId, vuln) {
     return __awaiter(this, void 0, void 0, function* () {
-        return yield agent.get(`/api/v3/releases/${releaseId}/vulnerabilities/${vuln.vulnId}/details`)
+        return request.get(`/api/v3/releases/${releaseId}/vulnerabilities/${vuln.vulnId}/details`)
             .use(throttle10perSec.plugin())
-            .then((resp) => {
+            .then(resp => {
+            var _a, _b;
             const details = resp.body;
-            //console.log(vuln);
-            //console.log(details);
-            console.log(JSON.stringify(getSarifResult(vuln, details), null, 2));
-            console.log(JSON.stringify(getSarifReportingDescriptor(vuln, details), null, 2));
-        });
+            console.info(`Processing vuln ${vuln.instanceId}`);
+            (_a = sarifLog.runs[0].tool.driver.rules) === null || _a === void 0 ? void 0 : _a.push(getSarifReportingDescriptor(vuln, details));
+            (_b = sarifLog.runs[0].results) === null || _b === void 0 ? void 0 : _b.push(getSarifResult(vuln, details));
+        })
+            .catch(err => console.error(`${err} - Ignoring vulnerability ${vuln.vulnId}`));
     });
 }
 function getSarifResult(vuln, details) {

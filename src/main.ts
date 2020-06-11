@@ -1,9 +1,10 @@
 import * as core from '@actions/core';
-import * as agent from 'superagent';
+import request from 'superagent';
 import prefix from 'superagent-prefix';
 import Throttle from 'superagent-throttle';
-import * as sarif from 'sarif';
+import * as sarif from './sarif/sarif-schema-2.1.0';
 import htmlToText from 'html-to-text';
+import { promises } from 'fs';
 
 const throttle10perSec = new Throttle({
     active: true,     // set false to pause queue
@@ -22,18 +23,6 @@ function getApiBaseUrl(baseUrlString: string) : URL {
 
 function getApiBaseUrlString(baseUrlString: string) : string {
     return getApiBaseUrl(baseUrlString).toString();
-}
-
-async function authenticate(baseUrlString: string, auth: any) : Promise<any> {
-    const apiBaseUrl = getApiBaseUrlString(baseUrlString);
-    const tokenEndPoint = `${apiBaseUrl}/oauth/token`;
-    return agent.post(tokenEndPoint)
-        .type('form')
-        .send(auth)
-        .then(resp=>agent.agent()
-            .set('Authorization', 'Bearer '+resp.body.access_token)
-            .use(prefix(apiBaseUrl))
-        );
 }
 
 function getAuthScope() {
@@ -78,17 +67,22 @@ function getReleaseId() : string {
     return core.getInput('release-id', { required: true });
 }
 
-function getLog() : sarif.Log {
+type sarifLog = sarif.StaticAnalysisResultsFormatSARIFVersion210JSONSchema;
+
+function getLog() : sarifLog {
     return {
+        $schema: 'https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json',
         version: '2.1.0',
         runs: [
             {
                 tool: {
-                    driver:
-                        {
-                            name: 'Fortify'
-                        }
+                    driver: { 
+                        name: 'Fortify',
+                        fullName: 'Fortify on Demand',
+                        rules: []
+                    }
                 }
+                ,results: []
             }
         ]
     };
@@ -101,35 +95,57 @@ async function main() {
         .catch(resp=>console.error(resp));
 }
 
-async function process(agent:any) {
-    const releaseId = getReleaseId();
-    processAllVulnerabilities(agent, releaseId, 0);
+async function authenticate(baseUrlString: string, auth: any) : Promise<request.SuperAgentStatic> {
+    const apiBaseUrl = getApiBaseUrlString(baseUrlString);
+    const tokenEndPoint = `${apiBaseUrl}/oauth/token`;
+    return request.post(tokenEndPoint)
+        .type('form')
+        .send(auth)
+        .then(resp=>createAgent(baseUrlString, resp.body));
 }
 
-async function processAllVulnerabilities(agent: any, releaseId:string, offset:number) : Promise<void> {
+function createAgent(apiBaseUrl:string, tokenResponseBody:any) : request.SuperAgentStatic {
+    return request.agent()
+        .set('Authorization', 'Bearer '+tokenResponseBody.access_token)
+        .use(prefix(apiBaseUrl))
+}
+
+async function process(request: request.SuperAgentStatic) : Promise<void> {
+    const releaseId = getReleaseId();
+    return processAllVulnerabilities(getLog(), request, releaseId, 0)
+        .then(sarifLog=>console.info(JSON.stringify(sarifLog, null, 2)));
+}
+
+async function processAllVulnerabilities(sarifLog: sarifLog, request: request.SuperAgentStatic, releaseId:string, offset:number) : Promise<sarifLog> {
     const limit = 50;
-    return await agent.get(`/api/v3/releases/${releaseId}/vulnerabilities`)
+    return request.get(`/api/v3/releases/${releaseId}/vulnerabilities`)
         .query({offset: offset, limit: limit})
         .then(
-            (resp: any)=>{
-                resp.body.items.forEach((vuln:any)=>processVulnerability(agent, releaseId, vuln));
-                if ( resp.body.totalCount>offset+limit ) {
-                    processAllVulnerabilities(agent, releaseId, offset+limit);
-                }
+            resp=>{
+                const vulns = resp.body.items;
+                //vulns.forEach((vuln:any)=>processVulnerability(sarifLog, request, releaseId, vuln));
+                return Promise.all(vulns.map((vuln:any)=>processVulnerability(sarifLog, request, releaseId, vuln)))
+                .then(()=>{
+                    if ( resp.body.totalCount>offset+limit ) {
+                        processAllVulnerabilities(sarifLog, request, releaseId, offset+limit);
+                    }
+                    return sarifLog;
+                })
             }
-        );
+        )
+        .catch(err=>{throw err});
 }
 
-async function processVulnerability(agent: any, releaseId:string, vuln: any) : Promise<void> {
-    return await agent.get(`/api/v3/releases/${releaseId}/vulnerabilities/${vuln.vulnId}/details`)
+async function processVulnerability(sarifLog: sarifLog, request: request.SuperAgentStatic, releaseId:string, vuln: any) : Promise<void> {
+    return request.get(`/api/v3/releases/${releaseId}/vulnerabilities/${vuln.vulnId}/details`)
         .use(throttle10perSec.plugin())
-        .then((resp: any)=>{
+        .then(resp=>{
             const details = resp.body;
-            //console.log(vuln);
-            //console.log(details);
-            console.log(JSON.stringify(getSarifResult(vuln, details), null, 2));
-            console.log(JSON.stringify(getSarifReportingDescriptor(vuln, details), null, 2));
-        });
+            console.info(`Processing vuln ${vuln.instanceId}`);
+            sarifLog.runs[0].tool.driver.rules?.push(getSarifReportingDescriptor(vuln, details));
+            sarifLog.runs[0].results?.push(getSarifResult(vuln, details));
+        })
+        .catch(err=>console.error(`${err} - Ignoring vulnerability ${vuln.vulnId}`));
 }
 
 function getSarifResult(vuln:any, details:any) : sarif.Result {

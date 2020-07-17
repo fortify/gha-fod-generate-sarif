@@ -6,7 +6,7 @@ import sarif from './sarif/sarif-schema-2.1.0';
 import htmlToText from 'html-to-text';
 import fs from 'fs-extra';
 import path from 'path';
-
+ 
 const INPUT = {
     base_url: core.getInput('base-url', { required: true }),
     tenant: core.getInput('tenant', { required: false }),

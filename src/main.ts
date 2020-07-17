@@ -175,7 +175,7 @@ function getSarifResult(vuln:any, details:any) : sarif.Result {
                     region: {
                         startLine: vuln.lineNumber,
                         endLine: vuln.lineNumber,
-                        startColumn: 0,
+                        startColumn: 1,
                         endColumn: 80
                     }
                 }

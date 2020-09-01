@@ -132,7 +132,7 @@ async function processAllVulnerabilities(sarifLog: sarifLog, request: request.Su
     const limit = 50;
     console.info(`Loading next ${limit} issues (offset ${offset})`);
     return request.get(`/api/v3/releases/${releaseId}/vulnerabilities`)
-        .query({offset: offset, limit: limit})
+        .query({filters: "scantype:Static", excludeFilters: true, offset: offset, limit: limit})
         .then(
             resp=>{
                 const vulns = resp.body.items;
@@ -149,10 +149,6 @@ async function processAllVulnerabilities(sarifLog: sarifLog, request: request.Su
 }
 
 async function processVulnerability(sarifLog: sarifLog, request: request.SuperAgentStatic, releaseId:string, vuln: any) : Promise<void> {
-    if ( vuln.scantype!='Static' ) { 
-        console.debug(`Ignoring non-static vulnerability ${vuln.vulnId}`);
-        return Promise.resolve(); // Ignore all non-static findings
-    }
     console.debug(`Loading details for vulnerability ${vuln.vulnId}`);
     return request.get(`/api/v3/releases/${releaseId}/vulnerabilities/${vuln.vulnId}/details`)
         .use(throttle10perSec.plugin())

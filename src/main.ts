@@ -22,7 +22,7 @@ const throttle10perSec = new Throttle({
     active: true,     // set false to pause queue
     rate: 9,          // how many requests can be sent every `ratePer`
     ratePer: 1000,   // number of ms in which `rate` requests may be sent
-    concurrent: 9     // how many requests can be sent concurrently
+    concurrent: 2     // how many requests can be sent concurrently
   })
 
 function getApiBaseUrl(baseUrlString: string) : URL {
@@ -202,7 +202,7 @@ function convertHtmlToText(html:string) {
 }
 
 function getRuleId(vuln:any, details:any) {
-    return vuln.vulnId;
+    return `${vuln.id}`;
 }
 
 main();

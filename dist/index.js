@@ -13771,7 +13771,7 @@ const throttle10perSec = new superagent_throttle_1.default({
     active: true,
     rate: 9,
     ratePer: 1000,
-    concurrent: 9 // how many requests can be sent concurrently
+    concurrent: 2 // how many requests can be sent concurrently
 });
 function getApiBaseUrl(baseUrlString) {
     let baseUrl = new URL(baseUrlString);
@@ -13943,7 +13943,7 @@ function convertHtmlToText(html) {
     return html_to_text_1.default.fromString(html, { preserveNewlines: true, wordwrap: false });
 }
 function getRuleId(vuln, details) {
-    return vuln.vulnId;
+    return `${vuln.id}`;
 }
 main();
 

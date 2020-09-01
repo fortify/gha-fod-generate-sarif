@@ -13890,6 +13890,9 @@ function processAllVulnerabilities(sarifLog, request, releaseId, offset) {
 }
 function processVulnerability(sarifLog, request, releaseId, vuln) {
     return __awaiter(this, void 0, void 0, function* () {
+        if (vuln.scantype != 'Static') {
+            return Promise.resolve();
+        } // Ignore all non-static findings
         return request.get(`/api/v3/releases/${releaseId}/vulnerabilities/${vuln.vulnId}/details`)
             .use(throttle10perSec.plugin())
             .then(resp => {

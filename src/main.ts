@@ -148,6 +148,7 @@ async function processAllVulnerabilities(sarifLog: sarifLog, request: request.Su
 }
 
 async function processVulnerability(sarifLog: sarifLog, request: request.SuperAgentStatic, releaseId:string, vuln: any) : Promise<void> {
+    if ( vuln.scantype!='Static' ) { return Promise.resolve(); } // Ignore all non-static findings
     return request.get(`/api/v3/releases/${releaseId}/vulnerabilities/${vuln.vulnId}/details`)
         .use(throttle10perSec.plugin())
         .then(resp=>{

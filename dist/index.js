@@ -13873,6 +13873,7 @@ function writeSarif(sarifLog) {
 function processAllVulnerabilities(sarifLog, request, releaseId, offset) {
     return __awaiter(this, void 0, void 0, function* () {
         const limit = 50;
+        console.info(`Loading next ${limit} issues (offset ${offset})`);
         return request.get(`/api/v3/releases/${releaseId}/vulnerabilities`)
             .query({ offset: offset, limit: limit })
             .then(resp => {
@@ -13891,8 +13892,10 @@ function processAllVulnerabilities(sarifLog, request, releaseId, offset) {
 function processVulnerability(sarifLog, request, releaseId, vuln) {
     return __awaiter(this, void 0, void 0, function* () {
         if (vuln.scantype != 'Static') {
-            return Promise.resolve();
-        } // Ignore all non-static findings
+            console.debug("Ignoreing non-static vulnerability ${vuln.vulnId}");
+            return Promise.resolve(); // Ignore all non-static findings
+        }
+        console.debug(`Loading details for vulnerability ${vuln.vulnId}`);
         return request.get(`/api/v3/releases/${releaseId}/vulnerabilities/${vuln.vulnId}/details`)
             .use(throttle10perSec.plugin())
             .then(resp => {

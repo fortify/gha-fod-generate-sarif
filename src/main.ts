@@ -161,7 +161,7 @@ async function processVulnerability(sarifLog: sarifLog, request: request.SuperAg
 
 function getSarifResult(vuln:any, details:any) : sarif.Result {
     return {
-        ruleId: details.ruleId,
+        ruleId: getRuleId(vuln, details),
         message: { text: convertHtmlToText(details.summary) },
         level: getSarifLevel(vuln.severity),
         partialFingerprints: {
@@ -191,7 +191,7 @@ function getSarifLevel(severity:number) : "none" | "note" | "warning" | "error" 
 
 function getSarifReportingDescriptor(vuln:any, details:any) : sarif.ReportingDescriptor {
     return {
-        id: details.ruleId,
+        id: getRuleId(vuln, details),
         shortDescription: { text: vuln.category },
         fullDescription: {text: convertHtmlToText(details.explanation) }
     };
@@ -199,6 +199,10 @@ function getSarifReportingDescriptor(vuln:any, details:any) : sarif.ReportingDes
 
 function convertHtmlToText(html:string) {
     return htmlToText.fromString(html, {preserveNewlines: true, wordwrap: false});
+}
+
+function getRuleId(vuln:any, details:any) {
+    return vuln.id;
 }
 
 main();

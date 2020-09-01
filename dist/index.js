@@ -13906,7 +13906,7 @@ function processVulnerability(sarifLog, request, releaseId, vuln) {
 }
 function getSarifResult(vuln, details) {
     return {
-        ruleId: details.ruleId,
+        ruleId: getRuleId(vuln, details),
         message: { text: convertHtmlToText(details.summary) },
         level: getSarifLevel(vuln.severity),
         partialFingerprints: {
@@ -13934,13 +13934,16 @@ function getSarifLevel(severity) {
 }
 function getSarifReportingDescriptor(vuln, details) {
     return {
-        id: details.ruleId,
+        id: getRuleId(vuln, details),
         shortDescription: { text: vuln.category },
         fullDescription: { text: convertHtmlToText(details.explanation) }
     };
 }
 function convertHtmlToText(html) {
     return html_to_text_1.default.fromString(html, { preserveNewlines: true, wordwrap: false });
+}
+function getRuleId(vuln, details) {
+    return vuln.id;
 }
 main();
 

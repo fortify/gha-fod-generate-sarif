@@ -202,7 +202,7 @@ function convertHtmlToText(html:string) {
 }
 
 function getRuleId(vuln:any, details:any) {
-    return vuln.id;
+    return vuln.vulnId;
 }
 
 main();

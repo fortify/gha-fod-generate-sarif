@@ -13943,7 +13943,7 @@ function convertHtmlToText(html) {
     return html_to_text_1.default.fromString(html, { preserveNewlines: true, wordwrap: false });
 }
 function getRuleId(vuln, details) {
-    return vuln.id;
+    return vuln.vulnId;
 }
 main();
 

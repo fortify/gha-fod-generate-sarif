@@ -13892,7 +13892,7 @@ function processAllVulnerabilities(sarifLog, request, releaseId, offset) {
 function processVulnerability(sarifLog, request, releaseId, vuln) {
     return __awaiter(this, void 0, void 0, function* () {
         if (vuln.scantype != 'Static') {
-            console.debug("Ignoreing non-static vulnerability ${vuln.vulnId}");
+            console.debug(`Ignoring non-static vulnerability ${vuln.vulnId}`);
             return Promise.resolve(); // Ignore all non-static findings
         }
         console.debug(`Loading details for vulnerability ${vuln.vulnId}`);

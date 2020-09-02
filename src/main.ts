@@ -194,8 +194,20 @@ function getSarifReportingDescriptor(vuln:any, details:any) : sarif.ReportingDes
     return {
         id: getRuleId(vuln, details),
         shortDescription: { text: vuln.category },
-        fullDescription: {text: convertHtmlToText(details.explanation) }
+        fullDescription: {text: convertHtmlToText(details.explanation) },
+        help: {
+            text:     getSarifReportingDescriptorHelpText(vuln, details),
+            markdown: getSarifReportingDescriptorHelpMarkdown(vuln, details)
+        }
     };
+}
+
+function getSarifReportingDescriptorHelpText(vuln:any, details:any) : string {
+    return `For detailed recommendations, code examples, dataflow diagram and more, see ${INPUT.base_url}/Redirect/Issues/${vuln.vulnid}.`;
+}
+
+function getSarifReportingDescriptorHelpMarkdown(vuln:any, details:any) : string {
+    return `For detailed recommendations, code examples, dataflow diagram and more, log in to [Fortify on Demand](${INPUT.base_url}/Redirect/Issues/${vuln.vulnid}).`;
 }
 
 function convertHtmlToText(html:string) {

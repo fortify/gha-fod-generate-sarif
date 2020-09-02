@@ -13943,10 +13943,10 @@ function getSarifReportingDescriptor(vuln, details) {
     };
 }
 function getSarifReportingDescriptorHelpText(vuln, details) {
-    return `For detailed recommendations, code examples, dataflow diagram and more, see ${INPUT.base_url}/Redirect/Issues/${vuln.vulnid}.`;
+    return `For detailed recommendations, code examples, dataflow diagram and more, see ${INPUT.base_url}/Redirect/Issues/${vuln.vulnId}.`;
 }
 function getSarifReportingDescriptorHelpMarkdown(vuln, details) {
-    return `For detailed recommendations, code examples, dataflow diagram and more, log in to [Fortify on Demand](${INPUT.base_url}/Redirect/Issues/${vuln.vulnid}).`;
+    return `For detailed recommendations, code examples, dataflow diagram and more, log in to [Fortify on Demand](${INPUT.base_url}/Redirect/Issues/${vuln.vulnId}).`;
 }
 function convertHtmlToText(html) {
     return html_to_text_1.default.fromString(html, { preserveNewlines: true, wordwrap: false });

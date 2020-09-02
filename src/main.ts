@@ -203,11 +203,11 @@ function getSarifReportingDescriptor(vuln:any, details:any) : sarif.ReportingDes
 }
 
 function getSarifReportingDescriptorHelpText(vuln:any, details:any) : string {
-    return `For detailed recommendations, code examples, dataflow diagram and more, see ${INPUT.base_url}/Redirect/Issues/${vuln.vulnid}.`;
+    return `For detailed recommendations, code examples, dataflow diagram and more, see ${INPUT.base_url}/Redirect/Issues/${vuln.vulnId}.`;
 }
 
 function getSarifReportingDescriptorHelpMarkdown(vuln:any, details:any) : string {
-    return `For detailed recommendations, code examples, dataflow diagram and more, log in to [Fortify on Demand](${INPUT.base_url}/Redirect/Issues/${vuln.vulnid}).`;
+    return `For detailed recommendations, code examples, dataflow diagram and more, log in to [Fortify on Demand](${INPUT.base_url}/Redirect/Issues/${vuln.vulnId}).`;
 }
 
 function convertHtmlToText(html:string) {

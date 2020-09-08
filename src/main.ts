@@ -133,11 +133,11 @@ async function process(request: request.SuperAgentStatic) : Promise<void> {
             let highCount = details.high;
             let criticalCount = details.critical;
 
-            console.info(`Total vuln count is ${totalVulnCount}`);
+            console.debug(`Total vuln count is ${totalVulnCount}`);
 
             if (status == 'Completed' && !suspended) {
                 if (totalVulnCount <= 1000) {
-                    console.info(`Processing all vulnerabilities`);
+                    console.debug(`Processing all vulnerabilities`);
                     return processAllVulnerabilities(getLog(), request, releaseId, 0)
                         .then(writeSarif);
                 }

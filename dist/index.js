@@ -24345,9 +24345,9 @@ const INPUT = {
 };
 const throttle10perSec = new superagent_throttle_1.default({
     active: true,
-    rate: 9,
-    ratePer: 1000,
-    concurrent: 2 // how many requests can be sent concurrently
+    rate: 3,
+    ratePer: 2000,
+    concurrent: 1 // how many requests can be sent concurrently
 });
 function getApiBaseUrl(baseUrlString) {
     let baseUrl = new URL(baseUrlString);
@@ -24393,21 +24393,6 @@ function getReleaseId() {
     // TODO Add support for getting release id by application/release name
     return INPUT.release_id;
 }
-var sarifFile = {
-    $schema: 'https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json',
-    version: '2.1.0',
-    runs: [
-        {
-            tool: {
-                driver: {
-                    name: 'Fortify on Demand',
-                    rules: []
-                }
-            },
-            results: []
-        }
-    ]
-};
 function getLog() {
     return {
         $schema: 'https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json',
@@ -24464,7 +24449,7 @@ function process(request) {
             if (status == 'Completed' && !suspended) {
                 if (totalVulnCount <= 1000) {
                     console.debug(`Processing all vulnerabilities`);
-                    return processAllVulnerabilities(request, releaseId, 0)
+                    return processAllVulnerabilities(getLog(), request, releaseId, 0)
                         .then(writeSarif);
                 }
                 else {
@@ -24496,7 +24481,7 @@ function process(request) {
                             low: false
                         };
                     }
-                    return processSelectVulnerabilities(request, releaseId, 0, severity)
+                    return processSelectVulnerabilities(getLog(), request, releaseId, 0, severity)
                         .then(writeSarif);
                 }
             }
@@ -24504,13 +24489,13 @@ function process(request) {
             .catch(err => { throw err; });
     });
 }
-function writeSarif() {
+function writeSarif(sarifLog) {
     return __awaiter(this, void 0, void 0, function* () {
         const file = INPUT.output;
-        return fs_extra_1.default.ensureFile(file).then(() => fs_extra_1.default.writeJSON(file, sarifFile, { spaces: 2 }));
+        return fs_extra_1.default.ensureFile(file).then(() => fs_extra_1.default.writeJSON(file, sarifLog, { spaces: 2 }));
     });
 }
-function processAllVulnerabilities(request, releaseId, offset) {
+function processAllVulnerabilities(sarifLog, request, releaseId, offset) {
     return __awaiter(this, void 0, void 0, function* () {
         const limit = 50;
         console.info(`Loading next ${limit} issues (offset ${offset})`);
@@ -24518,18 +24503,18 @@ function processAllVulnerabilities(request, releaseId, offset) {
             .query({ filters: "scantype:Static", excludeFilters: true, offset: offset, limit: limit })
             .then(resp => {
             const vulns = resp.body.items;
-            return Promise.all(vulns.map((vuln) => processVulnerability(request, releaseId, vuln)))
+            return Promise.all(vulns.map((vuln) => processVulnerability(sarifLog, request, releaseId, vuln)))
                 .then(() => {
                 if (resp.body.totalCount > offset + limit) {
-                    processAllVulnerabilities(request, releaseId, offset + limit);
+                    processAllVulnerabilities(sarifLog, request, releaseId, offset + limit);
                 }
-                //return sarifLog;
+                return sarifLog;
             });
         })
             .catch(err => { throw err; });
     });
 }
-function processSelectVulnerabilities(request, releaseId, offset, severity) {
+function processSelectVulnerabilities(sarifLog, request, releaseId, offset, severity) {
     return __awaiter(this, void 0, void 0, function* () {
         const limit = 50;
         console.info(`Loading next ${limit} issues (offset ${offset})`);
@@ -24547,12 +24532,12 @@ function processSelectVulnerabilities(request, releaseId, offset, severity) {
             .query({ filters: filters, excludeFilters: true, offset: offset, limit: limit })
             .then(resp => {
             const vulns = resp.body.items;
-            return Promise.all(vulns.map((vuln) => processVulnerability(request, releaseId, vuln)))
+            return Promise.all(vulns.map((vuln) => processVulnerability(sarifLog, request, releaseId, vuln)))
                 .then(() => {
                 if (resp.body.totalCount > offset + limit) {
-                    processSelectVulnerabilities(request, releaseId, offset + limit, severity);
+                    processSelectVulnerabilities(sarifLog, request, releaseId, offset + limit, severity);
                 }
-                //return sarifLog;
+                return sarifLog;
             });
         })
             .catch(err => { throw err; });
@@ -24569,7 +24554,7 @@ function getReleaseDetails(request, releaseId) {
             .catch(err => { throw err; });
     });
 }
-function processVulnerability(request, releaseId, vuln) {
+function processVulnerability(sarifLog, request, releaseId, vuln) {
     return __awaiter(this, void 0, void 0, function* () {
         console.debug(`Loading details for vulnerability ${vuln.vulnId}`);
         return request.get(`/api/v3/releases/${releaseId}/vulnerabilities/${vuln.vulnId}/details`)
@@ -24577,8 +24562,8 @@ function processVulnerability(request, releaseId, vuln) {
             .then(resp => {
             var _a, _b;
             const details = resp.body;
-            (_a = sarifFile.runs[0].tool.driver.rules) === null || _a === void 0 ? void 0 : _a.push(getSarifReportingDescriptor(vuln, details));
-            (_b = sarifFile.runs[0].results) === null || _b === void 0 ? void 0 : _b.push(getSarifResult(vuln, details));
+            (_a = sarifLog.runs[0].tool.driver.rules) === null || _a === void 0 ? void 0 : _a.push(getSarifReportingDescriptor(vuln, details));
+            (_b = sarifLog.runs[0].results) === null || _b === void 0 ? void 0 : _b.push(getSarifResult(vuln, details));
             console.debug(`Saving ${vuln.vulnId} to SARIF`);
         })
             .catch(err => console.error(`${err} - Ignoring vulnerability ${vuln.vulnId}`));

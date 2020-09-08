@@ -77,6 +77,22 @@ function getReleaseId() : string {
 
 type sarifLog = sarif.StaticAnalysisResultsFormatSARIFVersion210JSONSchema;
 
+var sarifFile : sarifLog = {
+    $schema: 'https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json',
+    version: '2.1.0',
+    runs: [
+        {
+            tool: {
+                driver: { 
+                    name: 'Fortify on Demand',
+                    rules: []
+                }
+            }
+            ,results: []
+        }
+    ]
+}
+
 function getLog() : sarifLog {
     return {
         $schema: 'https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json',
@@ -138,7 +154,7 @@ async function process(request: request.SuperAgentStatic) : Promise<void> {
             if (status == 'Completed' && !suspended) {
                 if (totalVulnCount <= 1000) {
                     console.debug(`Processing all vulnerabilities`);
-                    return processAllVulnerabilities(getLog(), request, releaseId, 0)
+                    return processAllVulnerabilities(request, releaseId, 0)
                         .then(writeSarif);
                 }
                 else {
@@ -170,7 +186,7 @@ async function process(request: request.SuperAgentStatic) : Promise<void> {
                                 low: false
                             };
                     }
-                    return processSelectVulnerabilities(getLog(), request, releaseId, 0, severity)
+                    return processSelectVulnerabilities( request, releaseId, 0, severity)
                         .then(writeSarif);
                 }
     
@@ -181,12 +197,12 @@ async function process(request: request.SuperAgentStatic) : Promise<void> {
 
 }
 
-async function writeSarif(sarifLog: sarifLog) : Promise<void> {
+async function writeSarif() : Promise<void> {
     const file = INPUT.output;
-    return fs.ensureFile(file).then(()=>fs.writeJSON(file, sarifLog, {spaces: 2}));
+    return fs.ensureFile(file).then(()=>fs.writeJSON(file, sarifFile, {spaces: 2}));
 }
 
-async function processAllVulnerabilities(sarifLog: sarifLog, request: request.SuperAgentStatic, releaseId:string, offset:number) : Promise<sarifLog> {
+async function processAllVulnerabilities(request: request.SuperAgentStatic, releaseId:string, offset:number) : Promise<void> {
     const limit = 50;
     console.info(`Loading next ${limit} issues (offset ${offset})`);
     return request.get(`/api/v3/releases/${releaseId}/vulnerabilities`)
@@ -194,19 +210,19 @@ async function processAllVulnerabilities(sarifLog: sarifLog, request: request.Su
         .then(
             resp=>{
                 const vulns = resp.body.items;
-                return Promise.all(vulns.map((vuln:any)=>processVulnerability(sarifLog, request, releaseId, vuln)))
+                return Promise.all(vulns.map((vuln:any)=>processVulnerability(request, releaseId, vuln)))
                 .then(()=>{
                     if ( resp.body.totalCount>offset+limit ) {
-                        processAllVulnerabilities(sarifLog, request, releaseId, offset+limit);
+                        processAllVulnerabilities(request, releaseId, offset+limit);
                     }
-                    return sarifLog;
+                    //return sarifLog;
                 })
             }
         )
         .catch(err=>{throw err});
 }
 
-async function processSelectVulnerabilities(sarifLog: sarifLog, request: request.SuperAgentStatic, releaseId:string, offset:number, severity:any) : Promise<sarifLog> {
+async function processSelectVulnerabilities(request: request.SuperAgentStatic, releaseId:string, offset:number, severity:any) : Promise<void> {
     const limit = 50;
     console.info(`Loading next ${limit} issues (offset ${offset})`);
 
@@ -226,12 +242,12 @@ async function processSelectVulnerabilities(sarifLog: sarifLog, request: request
         .then(
             resp=>{
                 const vulns = resp.body.items;
-                return Promise.all(vulns.map((vuln:any)=>processVulnerability(sarifLog, request, releaseId, vuln)))
+                return Promise.all(vulns.map((vuln:any)=>processVulnerability(request, releaseId, vuln)))
                 .then(()=>{
                     if ( resp.body.totalCount>offset+limit ) {
-                        processSelectVulnerabilities(sarifLog, request, releaseId, offset+limit, severity);
+                        processSelectVulnerabilities(request, releaseId, offset+limit, severity);
                     }
-                    return sarifLog;
+                    //return sarifLog;
                 })
             }
         )
@@ -248,14 +264,14 @@ async function getReleaseDetails(request: request.SuperAgentStatic, releaseId:st
         .catch(err=>{throw err});
 }
 
-async function processVulnerability(sarifLog: sarifLog, request: request.SuperAgentStatic, releaseId:string, vuln: any) : Promise<void> {
+async function processVulnerability(request: request.SuperAgentStatic, releaseId:string, vuln: any) : Promise<void> {
     console.debug(`Loading details for vulnerability ${vuln.vulnId}`);
     return request.get(`/api/v3/releases/${releaseId}/vulnerabilities/${vuln.vulnId}/details`)
         .use(throttle10perSec.plugin())
         .then(resp=>{
             const details = resp.body;
-            sarifLog.runs[0].tool.driver.rules?.push(getSarifReportingDescriptor(vuln, details));
-            sarifLog.runs[0].results?.push(getSarifResult(vuln, details));
+            sarifFile.runs[0].tool.driver.rules?.push(getSarifReportingDescriptor(vuln, details));
+            sarifFile.runs[0].results?.push(getSarifResult(vuln, details));
             console.debug(`Saving ${vuln.vulnId} to SARIF`);
         })
         .catch(err=>console.error(`${err} - Ignoring vulnerability ${vuln.vulnId}`));

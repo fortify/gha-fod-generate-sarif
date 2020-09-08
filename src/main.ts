@@ -85,7 +85,7 @@ function getLog() : sarifLog {
             {
                 tool: {
                     driver: { 
-                        name: 'Fortify',
+                        name: 'Fortify on Demand',
                         rules: []
                     }
                 }
@@ -119,8 +119,63 @@ function createAgent(apiBaseUrl:string, tokenResponseBody:any) : request.SuperAg
 
 async function process(request: request.SuperAgentStatic) : Promise<void> {
     const releaseId = getReleaseId();
-    return processAllVulnerabilities(getLog(), request, releaseId, 0)
-        .then(writeSarif);
+
+    const releaseDetails = getReleaseDetails(request, releaseId);
+
+    releaseDetails.then(
+        resp=>{
+            const details = resp;
+            
+            let status = details.currentAnalysisStatusType;
+            let suspended = details.suspended;
+            let totalVulnCount = details.critical + details.high + details.medium + details.low;
+            let mediumCount = details.medium;
+            let highCount = details.high;
+            let criticalCount = details.critical;
+
+            if (status == 'Completed' && !suspended) {
+                if (totalVulnCount <= 1000) {
+                    return processAllVulnerabilities(getLog(), request, releaseId, 0)
+                        .then(writeSarif);
+                }
+                else {
+                    let severity = {};
+                    if ((criticalCount + highCount + mediumCount) <= 1000) {
+                        severity = {
+                            critical: true,
+                            high: true,
+                            medium: true,
+                            low: false
+                        };
+                    }
+                    else if ((criticalCount + highCount + mediumCount) > 1000 
+                        && (criticalCount + highCount) <= 1000) {
+                            severity = {
+                                critical: true,
+                                high: true,
+                                medium: false,
+                                low: false
+                            };
+                    }
+                    else if ((criticalCount + highCount + mediumCount) > 1000 
+                        && (criticalCount + highCount) > 1000
+                        && criticalCount <= 1000) {
+                            severity = {
+                                critical: true,
+                                high: false,
+                                medium: false,
+                                low: false
+                            };
+                    }
+                    return processSelectVulnerabilities(getLog(), request, releaseId, 0, severity)
+                        .then(writeSarif);
+                }
+    
+            }
+        }
+    )
+    .catch(err=>{throw err});
+
 }
 
 async function writeSarif(sarifLog: sarifLog) : Promise<void> {
@@ -145,6 +200,48 @@ async function processAllVulnerabilities(sarifLog: sarifLog, request: request.Su
                 })
             }
         )
+        .catch(err=>{throw err});
+}
+
+async function processSelectVulnerabilities(sarifLog: sarifLog, request: request.SuperAgentStatic, releaseId:string, offset:number, severity:any) : Promise<sarifLog> {
+    const limit = 50;
+    console.info(`Loading next ${limit} issues (offset ${offset})`);
+
+    let filters = "scantype:Static";
+    if (severity.critical && severity.high && severity.medium && !severity.low) {
+        filters += "+severityString:Critical|High|Medium";
+    }
+    else if (severity.critical && severity.high && !severity.medium && !severity.low) {
+        filters += "+severityString:Critical|High";
+    }
+    else if (severity.critical && !severity.high && !severity.medium && !severity.low) {
+        filters += "+severityString:Critical";
+    }
+
+    return request.get(`/api/v3/releases/${releaseId}/vulnerabilities`)
+        .query({filters: filters, excludeFilters: true, offset: offset, limit: limit})
+        .then(
+            resp=>{
+                const vulns = resp.body.items;
+                return Promise.all(vulns.map((vuln:any)=>processVulnerability(sarifLog, request, releaseId, vuln)))
+                .then(()=>{
+                    if ( resp.body.totalCount>offset+limit ) {
+                        processAllVulnerabilities(sarifLog, request, releaseId, offset+limit);
+                    }
+                    return sarifLog;
+                })
+            }
+        )
+        .catch(err=>{throw err});
+}
+
+async function getReleaseDetails(request: request.SuperAgentStatic, releaseId:string) : Promise<any> {
+    console.debug(`Loading details for release ${releaseId}`);
+    return request.get(`/api/v3/releases/${releaseId}`)
+        .then(resp=>{
+            const releaseDetails = resp.body;
+            return releaseDetails;
+        })
         .catch(err=>{throw err});
 }
 

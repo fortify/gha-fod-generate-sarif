@@ -24564,6 +24564,7 @@ function processVulnerability(sarifLog, request, releaseId, vuln) {
             const details = resp.body;
             (_a = sarifLog.runs[0].tool.driver.rules) === null || _a === void 0 ? void 0 : _a.push(getSarifReportingDescriptor(vuln, details));
             (_b = sarifLog.runs[0].results) === null || _b === void 0 ? void 0 : _b.push(getSarifResult(vuln, details));
+            console.debug(`Saving ${vuln.vulnId} to SARIF`);
         })
             .catch(err => console.error(`${err} - Ignoring vulnerability ${vuln.vulnId}`));
     });

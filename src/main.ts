@@ -256,6 +256,7 @@ async function processVulnerability(sarifLog: sarifLog, request: request.SuperAg
             const details = resp.body;
             sarifLog.runs[0].tool.driver.rules?.push(getSarifReportingDescriptor(vuln, details));
             sarifLog.runs[0].results?.push(getSarifResult(vuln, details));
+            console.debug(`Saving ${vuln.vulnId} to SARIF`);
         })
         .catch(err=>console.error(`${err} - Ignoring vulnerability ${vuln.vulnId}`));
 }

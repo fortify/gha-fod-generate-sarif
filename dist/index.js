@@ -24531,7 +24531,7 @@ function processSelectVulnerabilities(sarifLog, request, releaseId, offset, seve
         return request.get(`/api/v3/releases/${releaseId}/vulnerabilities`)
             .query({ filters: filters, excludeFilters: true, offset: offset, limit: limit })
             .then(resp => {
-            console.info(`Response header: ${resp.header}`);
+            console.info(`Response error: ${resp.header.errors}`);
             const vulns = resp.body.items;
             return Promise.all(vulns.map((vuln) => processVulnerability(sarifLog, request, releaseId, vuln)))
                 .then(() => {

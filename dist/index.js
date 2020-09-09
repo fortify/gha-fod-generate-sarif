@@ -24584,10 +24584,16 @@ function process(request) {
             .catch(err => { throw err; });
     });
 }
-function writeSarif(sarifLog) {
+/*
+async function writeSarif(sarifLog: sarifLog) : Promise<void> {
+    const file = INPUT.output;
+    return fs.ensureFile(file).then(()=>fs.writeJSON(file, sarifLog, {spaces: 2}));
+}
+*/
+function writeSarif() {
     return __awaiter(this, void 0, void 0, function* () {
         const file = INPUT.output;
-        return fs_extra_1.default.ensureFile(file).then(() => fs_extra_1.default.writeJSON(file, sarifLog, { spaces: 2 }));
+        fs_extra_1.default.writeFileSync(file, JSON.stringify(getLog()));
     });
 }
 function processAllVulnerabilities(sarifLog, request, releaseId, offset) {

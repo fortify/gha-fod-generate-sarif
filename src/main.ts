@@ -181,9 +181,16 @@ async function process(request: request.SuperAgentStatic) : Promise<void> {
 
 }
 
+/*
 async function writeSarif(sarifLog: sarifLog) : Promise<void> {
     const file = INPUT.output;
     return fs.ensureFile(file).then(()=>fs.writeJSON(file, sarifLog, {spaces: 2}));
+}
+*/
+
+async function writeSarif() : Promise<void> {
+    const file = INPUT.output;
+    fs.writeFileSync(file, JSON.stringify(getLog()));
 }
 
 async function processAllVulnerabilities(sarifLog: sarifLog, request: request.SuperAgentStatic, releaseId:string, offset:number) : Promise<sarifLog> {

@@ -1,5 +1,5 @@
-name: 'Generate SARIF file from FoD'
-description: 'Generate SARIF file from Fortify on Demand'
+name: 'Generate SARIF from Fortify on Demand'
+description: 'Generate SARIF file from Fortify on Demand for import to GitHub'
 author: 'Fortify'
 inputs:
   base-url:
@@ -21,7 +21,7 @@ inputs:
     description: 'FoD Client Secret'
     required: false
   release-id:
-    description: 'FoD Release ID from which to download FPR file'
+    description: 'FoD Release ID from which to download SAST vulnerabilities'
     required: true
   output:
     description: 'Name and location of generated SARIF file'
@@ -33,3 +33,6 @@ outputs:
 runs:
   using: 'node12'
   main: 'dist/index.js'
+branding:
+  icon: 'shield'
+  color: 'blue'

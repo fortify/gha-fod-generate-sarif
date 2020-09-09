@@ -24345,8 +24345,8 @@ const INPUT = {
 };
 const throttle10perSec = new superagent_throttle_1.default({
     active: true,
-    rate: 3,
-    ratePer: 2000,
+    rate: 2,
+    ratePer: 10000,
     concurrent: 1 // how many requests can be sent concurrently
 });
 function getApiBaseUrl(baseUrlString) {

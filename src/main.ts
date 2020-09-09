@@ -20,8 +20,8 @@ const INPUT = {
 
 const throttle10perSec = new Throttle({
     active: true,     // set false to pause queue
-    rate: 3,          // how many requests can be sent every `ratePer`
-    ratePer: 2000,   // number of ms in which `rate` requests may be sent
+    rate: 2,          // how many requests can be sent every `ratePer`
+    ratePer: 10000,   // number of ms in which `rate` requests may be sent
     concurrent: 1     // how many requests can be sent concurrently
   })
 

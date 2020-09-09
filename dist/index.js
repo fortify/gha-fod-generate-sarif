@@ -24428,6 +24428,7 @@ const superagent_prefix_1 = __importDefault(__webpack_require__(7288));
 const superagent_throttle_1 = __importDefault(__webpack_require__(9211));
 const html_to_text_1 = __importDefault(__webpack_require__(4303));
 const fs_extra_1 = __importDefault(__webpack_require__(1504));
+const path_1 = __importDefault(__webpack_require__(5622));
 const INPUT = {
     base_url: core.getInput('base-url', { required: true }),
     tenant: core.getInput('tenant', { required: false }),
@@ -24593,6 +24594,8 @@ async function writeSarif(sarifLog: sarifLog) : Promise<void> {
 function writeSarif() {
     return __awaiter(this, void 0, void 0, function* () {
         const file = INPUT.output;
+        let sarifDir = path_1.default.dirname(file);
+        fs_extra_1.default.mkdirSync(sarifDir);
         fs_extra_1.default.writeFileSync(file, JSON.stringify(getLog()), { flag: 'w+' });
     });
 }

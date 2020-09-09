@@ -190,6 +190,8 @@ async function writeSarif(sarifLog: sarifLog) : Promise<void> {
 
 async function writeSarif() : Promise<void> {
     const file = INPUT.output;
+    let sarifDir = path.dirname(file);
+    fs.mkdirSync(sarifDir);
     fs.writeFileSync(file, JSON.stringify(getLog()), {flag: 'w+'});
 }
 

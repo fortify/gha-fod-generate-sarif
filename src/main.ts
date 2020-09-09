@@ -255,6 +255,8 @@ async function processVulnerability(sarifLog: sarifLog, request: request.SuperAg
     return request.get(`/api/v3/releases/${releaseId}/vulnerabilities/${vuln.vulnId}/details`)
         .use(throttle10perSec.plugin())
         .then(resp=>{
+            let respError = JSON.stringify(resp.header);
+            console.info(`Response error: ${respError}`);
             const details = resp.body;
             sarifLog.runs[0].tool.driver.rules?.push(getSarifReportingDescriptor(vuln, details));
             sarifLog.runs[0].results?.push(getSarifResult(vuln, details));

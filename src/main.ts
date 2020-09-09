@@ -20,7 +20,7 @@ const INPUT = {
 
 const throttle10perSec = new Throttle({
     active: true,     // set false to pause queue
-    rate: 2,          // how many requests can be sent every `ratePer`
+    rate: 1,          // how many requests can be sent every `ratePer`
     ratePer: 10000,   // number of ms in which `rate` requests may be sent
     concurrent: 1     // how many requests can be sent concurrently
   })
@@ -225,6 +225,7 @@ async function processSelectVulnerabilities(sarifLog: sarifLog, request: request
         .query({filters: filters, excludeFilters: true, offset: offset, limit: limit})
         .then(
             resp=>{
+                console.info(`Response header: ${resp.header}`);
                 const vulns = resp.body.items;
                 return Promise.all(vulns.map((vuln:any)=>processVulnerability(sarifLog, request, releaseId, vuln)))
                 .then(()=>{

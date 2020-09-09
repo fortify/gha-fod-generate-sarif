@@ -1,5 +1,5 @@
 name: 'Generate SARIF from Fortify on Demand'
-description: 'Generate SARIF file from Fortify on Demand for import to GitHub'
+description: 'Generate SARIF file from Fortify on Demand SAST results for import to GitHub'
 author: 'Fortify'
 inputs:
   base-url:

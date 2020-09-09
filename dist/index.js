@@ -24441,7 +24441,7 @@ const INPUT = {
 const throttle10perSec = new superagent_throttle_1.default({
     active: true,
     rate: 1,
-    ratePer: 10000,
+    ratePer: 5000,
     concurrent: 1 // how many requests can be sent concurrently
 });
 function getApiBaseUrl(baseUrlString) {
@@ -24593,7 +24593,7 @@ async function writeSarif(sarifLog: sarifLog) : Promise<void> {
 function writeSarif() {
     return __awaiter(this, void 0, void 0, function* () {
         const file = INPUT.output;
-        fs_extra_1.default.writeFileSync(file, JSON.stringify(getLog()));
+        fs_extra_1.default.writeFileSync(file, JSON.stringify(getLog()), { flag: 'w+' });
     });
 }
 function processAllVulnerabilities(sarifLog, request, releaseId, offset) {

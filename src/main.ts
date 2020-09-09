@@ -21,7 +21,7 @@ const INPUT = {
 const throttle10perSec = new Throttle({
     active: true,     // set false to pause queue
     rate: 1,          // how many requests can be sent every `ratePer`
-    ratePer: 10000,   // number of ms in which `rate` requests may be sent
+    ratePer: 5000,   // number of ms in which `rate` requests may be sent
     concurrent: 1     // how many requests can be sent concurrently
   })
 
@@ -190,7 +190,7 @@ async function writeSarif(sarifLog: sarifLog) : Promise<void> {
 
 async function writeSarif() : Promise<void> {
     const file = INPUT.output;
-    fs.writeFileSync(file, JSON.stringify(getLog()));
+    fs.writeFileSync(file, JSON.stringify(getLog()), {flag: 'w+'});
 }
 
 async function processAllVulnerabilities(sarifLog: sarifLog, request: request.SuperAgentStatic, releaseId:string, offset:number) : Promise<sarifLog> {

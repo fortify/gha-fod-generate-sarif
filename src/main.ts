@@ -225,7 +225,8 @@ async function processSelectVulnerabilities(sarifLog: sarifLog, request: request
         .query({filters: filters, excludeFilters: true, offset: offset, limit: limit})
         .then(
             resp=>{
-                console.info(`Response error: ${resp.header.errors}`);
+                let respError = JSON.stringify(resp.header);
+                console.info(`Response error: ${respError}`);
                 const vulns = resp.body.items;
                 return Promise.all(vulns.map((vuln:any)=>processVulnerability(sarifLog, request, releaseId, vuln)))
                 .then(()=>{

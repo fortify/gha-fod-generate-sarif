@@ -24619,8 +24619,8 @@ function processSelectVulnerabilities(equest, releaseId, offset, severity) {
         return superagent_1.default.get(`/api/v3/releases/${releaseId}/vulnerabilities`)
             .query({ filters: filters, excludeFilters: true, offset: offset, limit: limit })
             .then(resp => {
-            let respError = JSON.stringify(resp.header);
-            console.info(`Response error: ${respError}`);
+            //let respError = JSON.stringify(resp.header);
+            //console.info(`Response error: ${respError}`);
             const vulns = resp.body.items;
             return Promise.all(vulns.map((vuln) => processVulnerability(superagent_1.default, releaseId, vuln)))
                 .then(() => {

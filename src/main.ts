@@ -204,7 +204,7 @@ async function writeSarif() : Promise<void> {
 
 }
 
-async function processSelectVulnerabilities(equest: request.SuperAgentStatic, releaseId:string, offset:number, severity:any) : Promise<void> {
+async function processSelectVulnerabilities(equest: request.SuperAgentStatic, releaseId:string, offset:number, severity:any) : Promise<any> {
     const limit = 50;
     console.info(`Loading next ${limit} issues (offset ${offset})`);
 
@@ -223,8 +223,8 @@ async function processSelectVulnerabilities(equest: request.SuperAgentStatic, re
         .query({filters: filters, excludeFilters: true, offset: offset, limit: limit})
         .then(
             resp=>{
-                let respError = JSON.stringify(resp.header);
-                console.info(`Response error: ${respError}`);
+                //let respError = JSON.stringify(resp.header);
+                //console.info(`Response error: ${respError}`);
                 const vulns = resp.body.items;
                 return Promise.all(vulns.map((vuln:any)=>processVulnerability(request, releaseId, vuln)))
                 .then(()=>{

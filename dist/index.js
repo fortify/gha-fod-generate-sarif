@@ -24440,8 +24440,8 @@ const INPUT = {
 };
 const throttle10perSec = new superagent_throttle_1.default({
     active: true,
-    rate: 1,
-    ratePer: 5000,
+    rate: 2,
+    ratePer: 4000,
     concurrent: 1 // how many requests can be sent concurrently
 });
 var sarifToolDriverRules = [];

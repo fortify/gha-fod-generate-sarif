@@ -78,9 +78,9 @@ function getReleaseId() : string {
     return INPUT.release_id;
 }
 
-type sarifLog = sarif.StaticAnalysisResultsFormatSARIFVersion210JSONSchema;
+//type sarifLog = sarif.StaticAnalysisResultsFormatSARIFVersion210JSONSchema;
 
-function getLog() : sarifLog {
+function getLog() : any {
     return {
         $schema: 'https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json',
         version: '2.1.0',

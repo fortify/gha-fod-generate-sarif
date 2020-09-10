@@ -24490,6 +24490,7 @@ function getReleaseId() {
     // TODO Add support for getting release id by application/release name
     return INPUT.release_id;
 }
+//type sarifLog = sarif.StaticAnalysisResultsFormatSARIFVersion210JSONSchema;
 function getLog() {
     return {
         $schema: 'https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json',

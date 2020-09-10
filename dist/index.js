@@ -24510,7 +24510,7 @@ function getLog() {
 function main() {
     return __awaiter(this, void 0, void 0, function* () {
         const auth = getAuthPayload();
-        authenticate(INPUT.base_url, auth)
+        yield authenticate(INPUT.base_url, auth)
             .then(process)
             .catch(resp => console.error(resp));
     });
@@ -24602,7 +24602,7 @@ function writeSarif() {
         return fs_extra_1.default.ensureFile(file).then(() => fs_extra_1.default.writeJSON(file, sarifLog, { spaces: 2 }));
     });
 }
-function processSelectVulnerabilities(equest, releaseId, offset, severity) {
+function processSelectVulnerabilities(request, releaseId, offset, severity) {
     return __awaiter(this, void 0, void 0, function* () {
         const limit = 50;
         console.info(`Loading next ${limit} issues (offset ${offset})`);
@@ -24616,16 +24616,16 @@ function processSelectVulnerabilities(equest, releaseId, offset, severity) {
         else if (severity.critical && !severity.high && !severity.medium && !severity.low) {
             filters += "+severityString:Critical";
         }
-        return superagent_1.default.get(`/api/v3/releases/${releaseId}/vulnerabilities`)
+        return request.get(`/api/v3/releases/${releaseId}/vulnerabilities`)
             .query({ filters: filters, excludeFilters: true, offset: offset, limit: limit })
             .then(resp => {
             //let respError = JSON.stringify(resp.header);
             //console.info(`Response error: ${respError}`);
             const vulns = resp.body.items;
-            return Promise.all(vulns.map((vuln) => processVulnerability(superagent_1.default, releaseId, vuln)))
+            return Promise.all(vulns.map((vuln) => processVulnerability(request, releaseId, vuln)))
                 .then(() => {
                 if (resp.body.totalCount > offset + limit) {
-                    processSelectVulnerabilities(superagent_1.default, releaseId, offset + limit, severity)
+                    processSelectVulnerabilities(request, releaseId, offset + limit, severity)
                         .then(writeSarif);
                 }
             });

@@ -100,7 +100,7 @@ function getLog() : sarifLog {
 
 async function main() {
     const auth = getAuthPayload();
-    authenticate(INPUT.base_url, auth)
+    await authenticate(INPUT.base_url, auth)
         .then(process)
         .catch(resp=>console.error(resp));
 }
@@ -204,7 +204,7 @@ async function writeSarif() : Promise<void> {
 
 }
 
-async function processSelectVulnerabilities(equest: request.SuperAgentStatic, releaseId:string, offset:number, severity:any) : Promise<any> {
+async function processSelectVulnerabilities(request: request.SuperAgentStatic, releaseId:string, offset:number, severity:any) : Promise<any> {
     const limit = 50;
     console.info(`Loading next ${limit} issues (offset ${offset})`);
 
@@ -260,7 +260,7 @@ async function processVulnerability(request: request.SuperAgentStatic, releaseId
         .catch(err=>console.error(`${err} - Ignoring vulnerability ${vuln.vulnId}`));
 }
 
-function getSarifResult(vuln:any, details:any) : sarif.Result {
+function getSarifResult(vuln:any, details:any) : any {
     return {
         ruleId: getRuleId(vuln, details),
         message: { text: convertHtmlToText(details.summary) },
@@ -290,7 +290,7 @@ function getSarifLevel(severity:number) : "none" | "note" | "warning" | "error" 
     return 'warning'; // TODO map severity
 }
 
-function getSarifReportingDescriptor(vuln:any, details:any) : sarif.ReportingDescriptor {
+function getSarifReportingDescriptor(vuln:any, details:any) : any {
     return {
         id: getRuleId(vuln, details),
         shortDescription: { text: vuln.category },

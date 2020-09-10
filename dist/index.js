@@ -24428,7 +24428,6 @@ const superagent_prefix_1 = __importDefault(__webpack_require__(7288));
 const superagent_throttle_1 = __importDefault(__webpack_require__(9211));
 const html_to_text_1 = __importDefault(__webpack_require__(4303));
 const fs_extra_1 = __importDefault(__webpack_require__(1504));
-const path_1 = __importDefault(__webpack_require__(5622));
 const INPUT = {
     base_url: core.getInput('base-url', { required: true }),
     tenant: core.getInput('tenant', { required: false }),
@@ -24445,6 +24444,8 @@ const throttle10perSec = new superagent_throttle_1.default({
     ratePer: 5000,
     concurrent: 1 // how many requests can be sent concurrently
 });
+var sarifToolDriverRules = [];
+var sarifResults = [];
 function getApiBaseUrl(baseUrlString) {
     let baseUrl = new URL(baseUrlString);
     if (!baseUrl.hostname.startsWith('api')) {
@@ -24543,82 +24544,65 @@ function process(request) {
             let criticalCount = details.critical;
             console.debug(`Total vuln count is ${totalVulnCount}`);
             if (status == 'Completed' && !suspended) {
+                let severity = {};
                 if (totalVulnCount <= 1000) {
-                    console.debug(`Processing all vulnerabilities`);
-                    return processAllVulnerabilities(getLog(), request, releaseId, 0)
-                        .then(writeSarif);
+                    severity = {
+                        critical: true,
+                        high: true,
+                        medium: true,
+                        low: true
+                    };
                 }
-                else {
-                    let severity = {};
-                    if ((criticalCount + highCount + mediumCount) <= 1000) {
-                        severity = {
-                            critical: true,
-                            high: true,
-                            medium: true,
-                            low: false
-                        };
-                    }
-                    else if ((criticalCount + highCount + mediumCount) > 1000
-                        && (criticalCount + highCount) <= 1000) {
-                        severity = {
-                            critical: true,
-                            high: true,
-                            medium: false,
-                            low: false
-                        };
-                    }
-                    else if ((criticalCount + highCount + mediumCount) > 1000
-                        && (criticalCount + highCount) > 1000
-                        && criticalCount <= 1000) {
-                        severity = {
-                            critical: true,
-                            high: false,
-                            medium: false,
-                            low: false
-                        };
-                    }
-                    return processSelectVulnerabilities(getLog(), request, releaseId, 0, severity)
-                        .then(writeSarif);
+                else if ((criticalCount + highCount + mediumCount) <= 1000) {
+                    severity = {
+                        critical: true,
+                        high: true,
+                        medium: true,
+                        low: false
+                    };
                 }
+                else if ((criticalCount + highCount + mediumCount) > 1000
+                    && (criticalCount + highCount) <= 1000) {
+                    severity = {
+                        critical: true,
+                        high: true,
+                        medium: false,
+                        low: false
+                    };
+                }
+                else if ((criticalCount + highCount + mediumCount) > 1000
+                    && (criticalCount + highCount) > 1000
+                    && criticalCount <= 1000) {
+                    severity = {
+                        critical: true,
+                        high: false,
+                        medium: false,
+                        low: false
+                    };
+                }
+                return processSelectVulnerabilities(request, releaseId, 0, severity);
             }
         })
             .catch(err => { throw err; });
     });
 }
-/*
-async function writeSarif(sarifLog: sarifLog) : Promise<void> {
-    const file = INPUT.output;
-    return fs.ensureFile(file).then(()=>fs.writeJSON(file, sarifLog, {spaces: 2}));
-}
-*/
 function writeSarif() {
+    var _a, _b;
     return __awaiter(this, void 0, void 0, function* () {
+        let sarifLog = getLog();
+        if (sarifToolDriverRules.length > 0 && sarifResults.length > 0) {
+            for (var i = 0; i < sarifToolDriverRules.length; i++) {
+                (_a = sarifLog.runs[0].tool.driver.rules) === null || _a === void 0 ? void 0 : _a.push(sarifToolDriverRules[i]);
+            }
+            for (var j = 0; j < sarifResults.length; j++) {
+                (_b = sarifLog.runs[0].results) === null || _b === void 0 ? void 0 : _b.push(sarifResults[j]);
+            }
+        }
         const file = INPUT.output;
-        let sarifDir = path_1.default.dirname(file);
-        fs_extra_1.default.mkdirSync(sarifDir);
-        fs_extra_1.default.writeFileSync(file, JSON.stringify(getLog()), { flag: 'w+' });
+        return fs_extra_1.default.ensureFile(file).then(() => fs_extra_1.default.writeJSON(file, sarifLog, { spaces: 2 }));
     });
 }
-function processAllVulnerabilities(sarifLog, request, releaseId, offset) {
-    return __awaiter(this, void 0, void 0, function* () {
-        const limit = 50;
-        console.info(`Loading next ${limit} issues (offset ${offset})`);
-        return request.get(`/api/v3/releases/${releaseId}/vulnerabilities`)
-            .query({ filters: "scantype:Static", excludeFilters: true, offset: offset, limit: limit })
-            .then(resp => {
-            const vulns = resp.body.items;
-            return Promise.all(vulns.map((vuln) => processVulnerability(sarifLog, request, releaseId, vuln)))
-                .then(() => {
-                if (resp.body.totalCount > offset + limit) {
-                    processAllVulnerabilities(sarifLog, request, releaseId, offset + limit);
-                }
-                return sarifLog;
-            });
-        })
-            .catch(err => { throw err; });
-    });
-}
-function processSelectVulnerabilities(sarifLog, request, releaseId, offset, severity) {
+function processSelectVulnerabilities(equest, releaseId, offset, severity) {
     return __awaiter(this, void 0, void 0, function* () {
         const limit = 50;
         console.info(`Loading next ${limit} issues (offset ${offset})`);
@@ -24632,18 +24616,18 @@ function processSelectVulnerabilities(sarifLog, request, releaseId, offset, seve
         else if (severity.critical && !severity.high && !severity.medium && !severity.low) {
             filters += "+severityString:Critical";
         }
-        return request.get(`/api/v3/releases/${releaseId}/vulnerabilities`)
+        return superagent_1.default.get(`/api/v3/releases/${releaseId}/vulnerabilities`)
             .query({ filters: filters, excludeFilters: true, offset: offset, limit: limit })
             .then(resp => {
             let respError = JSON.stringify(resp.header);
             console.info(`Response error: ${respError}`);
             const vulns = resp.body.items;
-            return Promise.all(vulns.map((vuln) => processVulnerability(sarifLog, request, releaseId, vuln)))
+            return Promise.all(vulns.map((vuln) => processVulnerability(superagent_1.default, releaseId, vuln)))
                 .then(() => {
                 if (resp.body.totalCount > offset + limit) {
-                    processSelectVulnerabilities(sarifLog, request, releaseId, offset + limit, severity);
+                    processSelectVulnerabilities(superagent_1.default, releaseId, offset + limit, severity)
+                        .then(writeSarif);
                 }
-                return sarifLog;
             });
         })
             .catch(err => { throw err; });
@@ -24660,19 +24644,15 @@ function getReleaseDetails(request, releaseId) {
             .catch(err => { throw err; });
     });
 }
-function processVulnerability(sarifLog, request, releaseId, vuln) {
+function processVulnerability(request, releaseId, vuln) {
     return __awaiter(this, void 0, void 0, function* () {
         console.debug(`Loading details for vulnerability ${vuln.vulnId}`);
         return request.get(`/api/v3/releases/${releaseId}/vulnerabilities/${vuln.vulnId}/details`)
             .use(throttle10perSec.plugin())
             .then(resp => {
-            var _a, _b;
-            let respError = JSON.stringify(resp.header);
-            console.info(`Response error: ${respError}`);
             const details = resp.body;
-            (_a = sarifLog.runs[0].tool.driver.rules) === null || _a === void 0 ? void 0 : _a.push(getSarifReportingDescriptor(vuln, details));
-            (_b = sarifLog.runs[0].results) === null || _b === void 0 ? void 0 : _b.push(getSarifResult(vuln, details));
-            console.debug(`Saving ${vuln.vulnId} to SARIF`);
+            sarifToolDriverRules.push(getSarifReportingDescriptor(vuln, details));
+            sarifResults.push(getSarifResult(vuln, details));
         })
             .catch(err => console.error(`${err} - Ignoring vulnerability ${vuln.vulnId}`));
     });

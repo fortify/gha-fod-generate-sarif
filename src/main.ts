@@ -25,6 +25,7 @@ const throttle10perSec = new Throttle({
     concurrent: 1     // how many requests can be sent concurrently
   })
 
+var currentScanSummary: any;
 var sarifToolDriverRules = [] as any;
 var sarifResults = [] as any;
 
@@ -131,10 +132,19 @@ async function process(request: request.SuperAgentStatic) : Promise<void> {
             
             let status = details.currentAnalysisStatusType;
             let suspended = details.suspended;
-            let totalVulnCount = details.critical + details.high + details.medium + details.low;
+            let totalVulnCount = details.issueCount;
             let mediumCount = details.medium;
             let highCount = details.high;
             let criticalCount = details.critical;
+
+            
+            const scanSummary = getScanSummary(request, details.currentStaticScanId);
+            scanSummary.then(
+                res=>{
+                    currentScanSummary = res;
+                }
+            )
+            .catch(err=>{throw err});
 
             console.debug(`Total vuln count is ${totalVulnCount}`);
 
@@ -191,6 +201,13 @@ async function writeSarif() : Promise<void> {
     let sarifLog = getLog();
 
     if (sarifToolDriverRules.length > 0 && sarifResults.length > 0) {
+
+        //const scanSummary = getScanSummary(request, currentScanId);
+
+        sarifLog.runs[0].tool.driver.fullName = 
+            currentScanSummary.staticScanSummaryDetails.engineVersion + ' ' + 
+            currentScanSummary.staticScanSummaryDetails.rulePackVersion;
+
         for (var i=0; i<sarifToolDriverRules.length; i++) {
             sarifLog.runs[0].tool.driver.rules?.push(sarifToolDriverRules[i]);
         }
@@ -236,6 +253,16 @@ async function processSelectVulnerabilities(request: request.SuperAgentStatic, r
             }
         )
         .catch(err=>{throw err});
+}
+
+async function getScanSummary(request: request.SuperAgentStatic, scanId:string) : Promise<any> {
+    console.debug(`Loading summary for scan ${scanId}`);
+    return request.get(`/api/v3/scans/${scanId}/summary`)
+    .then(resp=>{
+        const scanSummary = resp.body;
+        return scanSummary;
+    })
+    .catch(err=>{throw err});
 }
 
 async function getReleaseDetails(request: request.SuperAgentStatic, releaseId:string) : Promise<any> {

@@ -24504,7 +24504,7 @@ function writeSarif() {
         let sarifLog = getLog();
         if (sarifToolDriverRules.length > 0 && sarifResults.length > 0) {
             //const scanSummary = getScanSummary(request, currentScanId);
-            sarifLog.runs[0].tool.driver.fullName =
+            sarifLog.runs[0].tool.driver.version =
                 currentScanSummary.staticScanSummaryDetails.engineVersion + ' ' +
                     currentScanSummary.staticScanSummaryDetails.rulePackVersion;
             for (var i = 0; i < sarifToolDriverRules.length; i++) {

@@ -204,7 +204,7 @@ async function writeSarif() : Promise<void> {
 
         //const scanSummary = getScanSummary(request, currentScanId);
 
-        sarifLog.runs[0].tool.driver.fullName = 
+        sarifLog.runs[0].tool.driver.version = 
             currentScanSummary.staticScanSummaryDetails.engineVersion + ' ' + 
             currentScanSummary.staticScanSummaryDetails.rulePackVersion;
 

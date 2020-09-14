@@ -24443,7 +24443,7 @@ function process(request) {
         const releaseDetails = getReleaseDetails(request, releaseId);
         releaseDetails.then(resp => {
             const details = resp;
-            let status = details.currentAnalysisStatusType;
+            let status = details.staticAnalysisStatusType;
             let suspended = details.suspended;
             let totalVulnCount = details.issueCount;
             let mediumCount = details.medium;

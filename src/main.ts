@@ -130,7 +130,7 @@ async function process(request: request.SuperAgentStatic) : Promise<void> {
         resp=>{
             const details = resp;
             
-            let status = details.currentAnalysisStatusType;
+            let status = details.staticAnalysisStatusType;
             let suspended = details.suspended;
             let totalVulnCount = details.issueCount;
             let mediumCount = details.medium;

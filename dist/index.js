@@ -24492,7 +24492,7 @@ function process(request) {
                         low: false
                     };
                 }
-                return processSelectVulnerabilities(request, releaseId, 0, severity);
+                return processSelectVulnerabilities(request, releaseId, 0, severity).then(writeSarif);
             }
         })
             .catch(err => { throw err; });
@@ -24504,6 +24504,7 @@ function writeSarif() {
         let sarifLog = getLog();
         if (sarifToolDriverRules.length > 0 && sarifResults.length > 0) {
             //const scanSummary = getScanSummary(request, currentScanId);
+            console.info(`Gathering issues...`);
             sarifLog.runs[0].tool.driver.version =
                 currentScanSummary.staticScanSummaryDetails.engineVersion + ' ' +
                     currentScanSummary.staticScanSummaryDetails.rulePackVersion;
@@ -24514,6 +24515,7 @@ function writeSarif() {
                 (_b = sarifLog.runs[0].results) === null || _b === void 0 ? void 0 : _b.push(sarifResults[j]);
             }
         }
+        console.info(`Writing SARIF...`);
         const file = INPUT.output;
         return fs_extra_1.default.ensureFile(file).then(() => fs_extra_1.default.writeJSON(file, sarifLog, { spaces: 2 }));
     });
@@ -24523,7 +24525,10 @@ function processSelectVulnerabilities(request, releaseId, offset, severity) {
         const limit = 50;
         console.info(`Loading next ${limit} issues (offset ${offset})`);
         let filters = "scantype:Static";
-        if (severity.critical && severity.high && severity.medium && !severity.low) {
+        if (severity.critical && severity.high && severity.medium && severity.low) {
+            filters += "+severityString:Critical|High|Medium|Low";
+        }
+        else if (severity.critical && severity.high && severity.medium && !severity.low) {
             filters += "+severityString:Critical|High|Medium";
         }
         else if (severity.critical && severity.high && !severity.medium && !severity.low) {
@@ -24534,18 +24539,18 @@ function processSelectVulnerabilities(request, releaseId, offset, severity) {
         }
         return request.get(`/api/v3/releases/${releaseId}/vulnerabilities`)
             .query({ filters: filters, excludeFilters: true, offset: offset, limit: limit })
-            .then(resp => {
+            .then((resp) => __awaiter(this, void 0, void 0, function* () {
             //let respError = JSON.stringify(resp.header);
             //console.info(`Response error: ${respError}`);
             const vulns = resp.body.items;
-            return Promise.all(vulns.map((vuln) => processVulnerability(request, releaseId, vuln)))
+            return yield Promise.all(vulns.map((vuln) => processVulnerability(request, releaseId, vuln)))
                 .then(() => {
                 if (resp.body.totalCount > offset + limit) {
                     processSelectVulnerabilities(request, releaseId, offset + limit, severity)
                         .then(writeSarif);
                 }
             });
-        })
+        }))
             .catch(err => { throw err; });
     });
 }
@@ -24580,6 +24585,7 @@ function processVulnerability(request, releaseId, vuln) {
             const details = resp.body;
             sarifToolDriverRules.push(getSarifReportingDescriptor(vuln, details));
             sarifResults.push(getSarifResult(vuln, details));
+            console.info(`Saving issue details for ${vuln.vulnId}`);
         })
             .catch(err => console.error(`${err} - Ignoring vulnerability ${vuln.vulnId}`));
     });

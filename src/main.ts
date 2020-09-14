@@ -74,7 +74,7 @@ function getAuthPayload() {
     }
 }
 
-function getReleaseId() : string {
+function getReleaseId() : any {
     // TODO Add support for getting release id by application/release name
     return INPUT.release_id;
 }
@@ -186,7 +186,7 @@ async function process(request: request.SuperAgentStatic) : Promise<void> {
                             low: false
                         };
                 }
-                return processSelectVulnerabilities(request, releaseId, 0, severity);
+                return processSelectVulnerabilities(request, releaseId, 0, severity).then(writeSarif);
 
             }
             
@@ -204,6 +204,8 @@ async function writeSarif() : Promise<void> {
 
         //const scanSummary = getScanSummary(request, currentScanId);
 
+        console.info(`Gathering issues...`);   
+
         sarifLog.runs[0].tool.driver.version = 
             currentScanSummary.staticScanSummaryDetails.engineVersion + ' ' + 
             currentScanSummary.staticScanSummaryDetails.rulePackVersion;
@@ -216,6 +218,8 @@ async function writeSarif() : Promise<void> {
         }      
     }
 
+    console.info(`Writing SARIF...`);
+
     const file = INPUT.output;
     return fs.ensureFile(file).then(()=>fs.writeJSON(file, sarifLog, {spaces: 2}));
 
@@ -226,7 +230,10 @@ async function processSelectVulnerabilities(request: request.SuperAgentStatic, r
     console.info(`Loading next ${limit} issues (offset ${offset})`);
 
     let filters = "scantype:Static";
-    if (severity.critical && severity.high && severity.medium && !severity.low) {
+    if (severity.critical && severity.high && severity.medium && severity.low) {
+        filters += "+severityString:Critical|High|Medium|Low";
+    }
+    else if (severity.critical && severity.high && severity.medium && !severity.low) {
         filters += "+severityString:Critical|High|Medium";
     }
     else if (severity.critical && severity.high && !severity.medium && !severity.low) {
@@ -239,11 +246,11 @@ async function processSelectVulnerabilities(request: request.SuperAgentStatic, r
     return request.get(`/api/v3/releases/${releaseId}/vulnerabilities`)
         .query({filters: filters, excludeFilters: true, offset: offset, limit: limit})
         .then(
-            resp=>{
+            async resp=>{
                 //let respError = JSON.stringify(resp.header);
                 //console.info(`Response error: ${respError}`);
                 const vulns = resp.body.items;
-                return Promise.all(vulns.map((vuln:any)=>processVulnerability(request, releaseId, vuln)))
+                return await Promise.all(vulns.map((vuln:any)=>processVulnerability(request, releaseId, vuln)))
                 .then(()=>{
                     if ( resp.body.totalCount>offset+limit ) {
                         processSelectVulnerabilities(request, releaseId, offset+limit, severity)
@@ -283,6 +290,8 @@ async function processVulnerability(request: request.SuperAgentStatic, releaseId
             const details = resp.body;
             sarifToolDriverRules.push(getSarifReportingDescriptor(vuln, details));
             sarifResults.push(getSarifResult(vuln, details));
+
+            console.info(`Saving issue details for ${vuln.vulnId}`);
         })
         .catch(err=>console.error(`${err} - Ignoring vulnerability ${vuln.vulnId}`));
 }

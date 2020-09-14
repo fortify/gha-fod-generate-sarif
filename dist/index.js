@@ -24627,6 +24627,9 @@ function getSarifReportingDescriptor(vuln, details) {
         help: {
             text: getSarifReportingDescriptorHelpText(vuln, details),
             markdown: getSarifReportingDescriptorHelpMarkdown(vuln, details)
+        },
+        properties: {
+            tags: [vuln.severityString]
         }
     };
 }

@@ -335,6 +335,9 @@ function getSarifReportingDescriptor(vuln:any, details:any) : any {
         help: {
             text:     getSarifReportingDescriptorHelpText(vuln, details),
             markdown: getSarifReportingDescriptorHelpMarkdown(vuln, details)
+        },
+        properties: {
+            tags: [vuln.severityString]
         }
     };
 }

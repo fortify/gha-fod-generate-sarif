@@ -24,7 +24,7 @@ jobs:
           tenant: ${{ secrets.FOD_TENANT }}
           user: ${{ secrets.FOD_USER }}
           password: ${{ secrets.FOD_PAT }}
-          release-id: ${{ secrets.FOD_RELEASE_ID2 }}
+          release-id: ${{ secrets.FOD_RELEASE_ID }}
           output: ./sarif/output.sarif
       
       # Import Fortify on Demand results to GitHub Security Code Scanning
@@ -44,6 +44,7 @@ For sample workflows implementing this and other Fortify actions, see:
 * Issues that are marked as Fix Validated or are suppressed in FoD are ignored.
 * SARIF is designed specifically for SAST findings, so this action ignores FoD Dynamic (DAST), Mobile (MAST) and Open Source/Software Composition (OSS/SCA) issues.
 * GitHub Code Scanning currently supports SARIF files with up to 1,000 issues. If the FoD release contains more than 1,000 issues, this action will iteratively remove lower priority issues - low, then medium, then high - in an attempt generate an importable SARIF file.  If there are more than 1,000 critical issues, the action will abort.
+* All issues are created with the SARIF level of `warning`. Fortify Priority Order (severity) is assigned via tags for filtering.
 * If you are not already a Fortify customer, check out our [Free Trial](https://www.microfocus.com/en-us/products/application-security-testing/free-trial)
 
 

@@ -331,7 +331,7 @@ function getSarifReportingDescriptor(vuln:any, details:any) : any {
     return {
         id: getRuleId(vuln, details),
         shortDescription: { text: vuln.category },
-        fullDescription: {text: convertHtmlToText(details.explanation) },
+        fullDescription: {text: convertHtmlToText(details.summary) },
         help: {
             text:     getSarifReportingDescriptorHelpText(vuln, details),
             markdown: getSarifReportingDescriptorHelpMarkdown(vuln, details)

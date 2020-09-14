@@ -20,10 +20,14 @@ const INPUT = {
 
 const throttle10perSec = new Throttle({
     active: true,     // set false to pause queue
-    rate: 9,          // how many requests can be sent every `ratePer`
-    ratePer: 1000,   // number of ms in which `rate` requests may be sent
-    concurrent: 2     // how many requests can be sent concurrently
+    rate: 2,          // how many requests can be sent every `ratePer`
+    ratePer: 4000,   // number of ms in which `rate` requests may be sent
+    concurrent: 1     // how many requests can be sent concurrently
   })
+
+var currentScanSummary: any;
+var sarifToolDriverRules = [] as any;
+var sarifResults = [] as any;
 
 function getApiBaseUrl(baseUrlString: string) : URL {
     let baseUrl = new URL(baseUrlString);
@@ -70,14 +74,14 @@ function getAuthPayload() {
     }
 }
 
-function getReleaseId() : string {
+function getReleaseId() : any {
     // TODO Add support for getting release id by application/release name
     return INPUT.release_id;
 }
 
-type sarifLog = sarif.StaticAnalysisResultsFormatSARIFVersion210JSONSchema;
+//type sarifLog = sarif.StaticAnalysisResultsFormatSARIFVersion210JSONSchema;
 
-function getLog() : sarifLog {
+function getLog() : any {
     return {
         $schema: 'https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json',
         version: '2.1.0',
@@ -85,7 +89,7 @@ function getLog() : sarifLog {
             {
                 tool: {
                     driver: { 
-                        name: 'Fortify',
+                        name: 'Fortify on Demand',
                         rules: []
                     }
                 }
@@ -97,7 +101,7 @@ function getLog() : sarifLog {
 
 async function main() {
     const auth = getAuthPayload();
-    authenticate(INPUT.base_url, auth)
+    await authenticate(INPUT.base_url, auth)
         .then(process)
         .catch(resp=>console.error(resp));
 }
@@ -119,48 +123,177 @@ function createAgent(apiBaseUrl:string, tokenResponseBody:any) : request.SuperAg
 
 async function process(request: request.SuperAgentStatic) : Promise<void> {
     const releaseId = getReleaseId();
-    return processAllVulnerabilities(getLog(), request, releaseId, 0)
-        .then(writeSarif);
+
+    const releaseDetails = getReleaseDetails(request, releaseId);
+
+    releaseDetails.then(
+        resp=>{
+            const details = resp;
+            
+            let status = details.staticAnalysisStatusType;
+            let suspended = details.suspended;
+            let totalVulnCount = details.issueCount;
+            let mediumCount = details.medium;
+            let highCount = details.high;
+            let criticalCount = details.critical;
+
+            
+            const scanSummary = getScanSummary(request, details.currentStaticScanId);
+            scanSummary.then(
+                res=>{
+                    currentScanSummary = res;
+                }
+            )
+            .catch(err=>{throw err});
+
+            console.debug(`Total vuln count is ${totalVulnCount}`);
+
+            if (status == 'Completed' && !suspended) {
+                let severity = {};
+
+                if (totalVulnCount <= 1000) {
+                    severity = {
+                        critical: true,
+                        high: true,
+                        medium: true,
+                        low: true
+                    }
+                }
+                else if ((criticalCount + highCount + mediumCount) <= 1000) {
+                    severity = {
+                        critical: true,
+                        high: true,
+                        medium: true,
+                        low: false
+                    };
+                }
+                else if ((criticalCount + highCount + mediumCount) > 1000 
+                    && (criticalCount + highCount) <= 1000) {
+                        severity = {
+                            critical: true,
+                            high: true,
+                            medium: false,
+                            low: false
+                        };
+                }
+                else if ((criticalCount + highCount + mediumCount) > 1000 
+                    && (criticalCount + highCount) > 1000
+                    && criticalCount <= 1000) {
+                        severity = {
+                            critical: true,
+                            high: false,
+                            medium: false,
+                            low: false
+                        };
+                }
+                return processSelectVulnerabilities(request, releaseId, 0, severity).then(writeSarif);
+
+            }
+            
+        }
+    )
+    .catch(err=>{throw err});
+
 }
 
-async function writeSarif(sarifLog: sarifLog) : Promise<void> {
+async function writeSarif() : Promise<void> {
+
+    let sarifLog = getLog();
+
+    if (sarifToolDriverRules.length > 0 && sarifResults.length > 0) {
+
+        console.info(`Gathering issues...`);   
+
+        sarifLog.runs[0].tool.driver.version = 
+            currentScanSummary.staticScanSummaryDetails.engineVersion + ' ' + 
+            currentScanSummary.staticScanSummaryDetails.rulePackVersion;
+
+        for (var i=0; i<sarifToolDriverRules.length; i++) {
+            sarifLog.runs[0].tool.driver.rules?.push(sarifToolDriverRules[i]);
+        }
+        for (var j=0; j<sarifResults.length; j++) {
+            sarifLog.runs[0].results?.push(sarifResults[j]);
+        }      
+    }
+
+    console.info(`Writing SARIF...`);
+
     const file = INPUT.output;
     return fs.ensureFile(file).then(()=>fs.writeJSON(file, sarifLog, {spaces: 2}));
+
 }
 
-async function processAllVulnerabilities(sarifLog: sarifLog, request: request.SuperAgentStatic, releaseId:string, offset:number) : Promise<sarifLog> {
+async function processSelectVulnerabilities(request: request.SuperAgentStatic, releaseId:string, offset:number, severity:any) : Promise<any> {
     const limit = 50;
     console.info(`Loading next ${limit} issues (offset ${offset})`);
+
+    let filters = "scantype:Static";
+    if (severity.critical && severity.high && severity.medium && severity.low) {
+        filters += "+severityString:Critical|High|Medium|Low";
+    }
+    else if (severity.critical && severity.high && severity.medium && !severity.low) {
+        filters += "+severityString:Critical|High|Medium";
+    }
+    else if (severity.critical && severity.high && !severity.medium && !severity.low) {
+        filters += "+severityString:Critical|High";
+    }
+    else if (severity.critical && !severity.high && !severity.medium && !severity.low) {
+        filters += "+severityString:Critical";
+    }
+
     return request.get(`/api/v3/releases/${releaseId}/vulnerabilities`)
-        .query({filters: "scantype:Static", excludeFilters: true, offset: offset, limit: limit})
+        .query({filters: filters, excludeFilters: true, offset: offset, limit: limit})
         .then(
-            resp=>{
+            async resp=>{
                 const vulns = resp.body.items;
-                return Promise.all(vulns.map((vuln:any)=>processVulnerability(sarifLog, request, releaseId, vuln)))
+                return await Promise.all(vulns.map((vuln:any)=>processVulnerability(request, releaseId, vuln)))
                 .then(()=>{
                     if ( resp.body.totalCount>offset+limit ) {
-                        processAllVulnerabilities(sarifLog, request, releaseId, offset+limit);
+                        processSelectVulnerabilities(request, releaseId, offset+limit, severity)
+                            .then(writeSarif);
                     }
-                    return sarifLog;
                 })
             }
         )
         .catch(err=>{throw err});
 }
 
-async function processVulnerability(sarifLog: sarifLog, request: request.SuperAgentStatic, releaseId:string, vuln: any) : Promise<void> {
+async function getScanSummary(request: request.SuperAgentStatic, scanId:string) : Promise<any> {
+    console.debug(`Loading summary for scan ${scanId}`);
+    return request.get(`/api/v3/scans/${scanId}/summary`)
+    .then(resp=>{
+        const scanSummary = resp.body;
+        return scanSummary;
+    })
+    .catch(err=>{throw err});
+}
+
+async function getReleaseDetails(request: request.SuperAgentStatic, releaseId:string) : Promise<any> {
+    console.debug(`Loading details for release ${releaseId}`);
+    return request.get(`/api/v3/releases/${releaseId}`)
+        .query({filters: 'scantype:Static'})
+        .then(resp=>{
+            const releaseDetails = resp.body;
+            return releaseDetails;
+        })
+        .catch(err=>{throw err});
+}
+
+async function processVulnerability(request: request.SuperAgentStatic, releaseId:string, vuln: any) : Promise<void> {
     console.debug(`Loading details for vulnerability ${vuln.vulnId}`);
     return request.get(`/api/v3/releases/${releaseId}/vulnerabilities/${vuln.vulnId}/details`)
         .use(throttle10perSec.plugin())
         .then(resp=>{
             const details = resp.body;
-            sarifLog.runs[0].tool.driver.rules?.push(getSarifReportingDescriptor(vuln, details));
-            sarifLog.runs[0].results?.push(getSarifResult(vuln, details));
+            sarifToolDriverRules.push(getSarifReportingDescriptor(vuln, details));
+            sarifResults.push(getSarifResult(vuln, details));
+
+            console.info(`Saving issue details for ${vuln.vulnId}`);
         })
         .catch(err=>console.error(`${err} - Ignoring vulnerability ${vuln.vulnId}`));
 }
 
-function getSarifResult(vuln:any, details:any) : sarif.Result {
+function getSarifResult(vuln:any, details:any) : any {
     return {
         ruleId: getRuleId(vuln, details),
         message: { text: convertHtmlToText(details.summary) },
@@ -190,14 +323,17 @@ function getSarifLevel(severity:number) : "none" | "note" | "warning" | "error" 
     return 'warning'; // TODO map severity
 }
 
-function getSarifReportingDescriptor(vuln:any, details:any) : sarif.ReportingDescriptor {
+function getSarifReportingDescriptor(vuln:any, details:any) : any {
     return {
         id: getRuleId(vuln, details),
         shortDescription: { text: vuln.category },
-        fullDescription: {text: convertHtmlToText(details.explanation) },
+        fullDescription: {text: convertHtmlToText(details.summary) },
         help: {
             text:     getSarifReportingDescriptorHelpText(vuln, details),
             markdown: getSarifReportingDescriptorHelpMarkdown(vuln, details)
+        },
+        properties: {
+            tags: [vuln.severityString]
         }
     };
 }

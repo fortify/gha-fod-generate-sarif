@@ -24503,7 +24503,6 @@ function writeSarif() {
     return __awaiter(this, void 0, void 0, function* () {
         let sarifLog = getLog();
         if (sarifToolDriverRules.length > 0 && sarifResults.length > 0) {
-            //const scanSummary = getScanSummary(request, currentScanId);
             console.info(`Gathering issues...`);
             sarifLog.runs[0].tool.driver.version =
                 currentScanSummary.staticScanSummaryDetails.engineVersion + ' ' +
@@ -24540,8 +24539,6 @@ function processSelectVulnerabilities(request, releaseId, offset, severity) {
         return request.get(`/api/v3/releases/${releaseId}/vulnerabilities`)
             .query({ filters: filters, excludeFilters: true, offset: offset, limit: limit })
             .then((resp) => __awaiter(this, void 0, void 0, function* () {
-            //let respError = JSON.stringify(resp.header);
-            //console.info(`Response error: ${respError}`);
             const vulns = resp.body.items;
             return yield Promise.all(vulns.map((vuln) => processVulnerability(request, releaseId, vuln)))
                 .then(() => {

@@ -202,8 +202,6 @@ async function writeSarif() : Promise<void> {
 
     if (sarifToolDriverRules.length > 0 && sarifResults.length > 0) {
 
-        //const scanSummary = getScanSummary(request, currentScanId);
-
         console.info(`Gathering issues...`);   
 
         sarifLog.runs[0].tool.driver.version = 
@@ -247,8 +245,6 @@ async function processSelectVulnerabilities(request: request.SuperAgentStatic, r
         .query({filters: filters, excludeFilters: true, offset: offset, limit: limit})
         .then(
             async resp=>{
-                //let respError = JSON.stringify(resp.header);
-                //console.info(`Response error: ${respError}`);
                 const vulns = resp.body.items;
                 return await Promise.all(vulns.map((vuln:any)=>processVulnerability(request, releaseId, vuln)))
                 .then(()=>{

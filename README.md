@@ -53,7 +53,7 @@ For sample workflows implementing this and other Fortify actions, see:
 **Required** The base URL for the Fortify on Demand environment where your data resides.
 
 ### `tenant` + `user` + `password` OR `client-id` + `client-secret`
-**Required** Credentials for authenticating to Fortify on Demand. Strongly recommend use of GitHub Secrets for credential management.
+**Required** Credentials for authenticating to Fortify on Demand. Strongly recommend use of GitHub Secrets for credential management.  Personal Access Tokens require the `view-apps` and  `view-issues` API scopes.  Client credentials require the `Read Only` (or higher) role.
 
 ### `release-id`
 **Required** The target FoD release ID to pull SAST issues from.

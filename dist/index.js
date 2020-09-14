@@ -24569,6 +24569,7 @@ function getReleaseDetails(request, releaseId) {
     return __awaiter(this, void 0, void 0, function* () {
         console.debug(`Loading details for release ${releaseId}`);
         return request.get(`/api/v3/releases/${releaseId}`)
+            .query({ filters: 'scantype:Static' })
             .then(resp => {
             const releaseDetails = resp.body;
             return releaseDetails;

@@ -24449,13 +24449,13 @@ function process(request) {
             let mediumCount = details.medium;
             let highCount = details.high;
             let criticalCount = details.critical;
-            const scanSummary = getScanSummary(request, details.currentStaticScanId);
-            scanSummary.then(res => {
-                currentScanSummary = res;
-            })
-                .catch(err => { throw err; });
-            console.debug(`Total vuln count is ${totalVulnCount}`);
             if (status == 'Completed' && !suspended) {
+                const scanSummary = getScanSummary(request, details.currentStaticScanId);
+                scanSummary.then(res => {
+                    currentScanSummary = res;
+                })
+                    .catch(err => { throw err; });
+                console.debug(`Total vuln count is ${totalVulnCount}`);
                 let severity = {};
                 if (totalVulnCount <= 1000) {
                     severity = {
@@ -24493,6 +24493,9 @@ function process(request) {
                     };
                 }
                 return processSelectVulnerabilities(request, releaseId, 0, severity).then(writeSarif);
+            }
+            else {
+                console.info(`The scan is incomplete.  Results are not available.`);
             }
         })
             .catch(err => { throw err; });

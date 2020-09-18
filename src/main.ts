@@ -323,7 +323,15 @@ function getSarifResult(vuln:any, details:any) : any {
 }
 
 function getSarifLevel(severity:number) : "none" | "note" | "warning" | "error" | undefined {
-    return 'warning'; // TODO map severity
+  // Critical and high map to SARIF warning; medium and low to SARIF note
+  if (severity == 4 || severity == 3)
+  {
+    return 'warning';
+  }
+  else
+  {
+   return 'note';
+  }
 }
 
 function getSarifReportingDescriptor(vuln:any, details:any) : any {

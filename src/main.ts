@@ -323,15 +323,15 @@ function getSarifResult(vuln:any, details:any) : any {
 }
 
 function getSarifLevel(severity:number) : "none" | "note" | "warning" | "error" | undefined {
-  // Critical and high map to SARIF warning; medium and low to SARIF note
-  if (severity == 4 || severity == 3)
-  {
-    return 'warning';
-  }
-  else
-  {
-   return 'note';
-  }
+    // Critical and high map to SARIF warning level (high imapct); medium and low to SARIF note (low impact)
+    if (severity == 4 || severity == 3)
+    {
+        return 'warning';
+    }
+    else
+    {
+        return 'note';
+    }
 }
 
 function getSarifReportingDescriptor(vuln:any, details:any) : any {
@@ -344,9 +344,22 @@ function getSarifReportingDescriptor(vuln:any, details:any) : any {
             markdown: getSarifReportingDescriptorHelpMarkdown(vuln, details)
         },
         properties: {
-            tags: [vuln.severityString]
+            tags: [vuln.severityString],
+            precision: getPrecision(vuln.severity)
         }
     };
+}
+
+function getPrecision(severity:number) : "very-high" | "high" | "medium" | "low" | undefined {
+    // Critical and medium map to high precision (high likelihood); high and low to low precision (low likelihood)
+    if (severity == 4 || severity == 3)
+    {
+        return 'high';
+    }
+    else
+    {
+        return 'low';
+    }
 }
 
 function getSarifReportingDescriptorHelpText(vuln:any, details:any) : string {

@@ -208,8 +208,8 @@ async function writeSarif() : Promise<void> {
         console.info(`Gathering issues...`);   
 
         sarifLog.runs[0].tool.driver.version = 
-            currentScanSummary.staticScanSummaryDetails.engineVersion + ' ' + 
-            currentScanSummary.staticScanSummaryDetails.rulePackVersion;
+            'SCA ' + currentScanSummary.staticScanSummaryDetails.engineVersion + '; ' + 
+            'Rulepack ' + currentScanSummary.staticScanSummaryDetails.rulePackVersion;
 
         for (var i=0; i<sarifToolDriverRules.length; i++) {
             sarifLog.runs[0].tool.driver.rules?.push(sarifToolDriverRules[i]);
@@ -274,7 +274,6 @@ async function getScanSummary(request: request.SuperAgentStatic, scanId:string) 
 async function getReleaseDetails(request: request.SuperAgentStatic, releaseId:string) : Promise<any> {
     console.debug(`Loading details for release ${releaseId}`);
     return request.get(`/api/v3/releases/${releaseId}`)
-        .query({filters: 'scantype:Static'})
         .then(resp=>{
             const releaseDetails = resp.body;
             return releaseDetails;
@@ -323,7 +322,15 @@ function getSarifResult(vuln:any, details:any) : any {
 }
 
 function getSarifLevel(severity:number) : "none" | "note" | "warning" | "error" | undefined {
-    return 'warning'; // TODO map severity
+    // Critical and high map to SARIF warning level (high imapct); medium and low to SARIF note (low impact)
+    if (severity == 4 || severity == 3)
+    {
+        return 'warning';
+    }
+    else
+    {
+        return 'note';
+    }
 }
 
 function getSarifReportingDescriptor(vuln:any, details:any) : any {
@@ -336,9 +343,22 @@ function getSarifReportingDescriptor(vuln:any, details:any) : any {
             markdown: getSarifReportingDescriptorHelpMarkdown(vuln, details)
         },
         properties: {
-            tags: [vuln.severityString]
+            tags: [vuln.severityString],
+            precision: getPrecision(vuln.severity)
         }
     };
+}
+
+function getPrecision(severity:number) : "very-high" | "high" | "medium" | "low" | undefined {
+    // Critical and medium map to high precision (high likelihood); high and low to low precision (low likelihood)
+    if (severity == 4 || severity == 3)
+    {
+        return 'high';
+    }
+    else
+    {
+        return 'low';
+    }
 }
 
 function getSarifReportingDescriptorHelpText(vuln:any, details:any) : string {

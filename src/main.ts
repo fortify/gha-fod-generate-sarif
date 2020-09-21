@@ -208,8 +208,8 @@ async function writeSarif() : Promise<void> {
         console.info(`Gathering issues...`);   
 
         sarifLog.runs[0].tool.driver.version = 
-            currentScanSummary.staticScanSummaryDetails.engineVersion + ' ' + 
-            currentScanSummary.staticScanSummaryDetails.rulePackVersion;
+            'SCA ' + currentScanSummary.staticScanSummaryDetails.engineVersion + '; ' + 
+            'Rulepack ' + currentScanSummary.staticScanSummaryDetails.rulePackVersion;
 
         for (var i=0; i<sarifToolDriverRules.length; i++) {
             sarifLog.runs[0].tool.driver.rules?.push(sarifToolDriverRules[i]);

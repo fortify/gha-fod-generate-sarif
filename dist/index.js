@@ -24508,8 +24508,8 @@ function writeSarif() {
         if (sarifToolDriverRules.length > 0 && sarifResults.length > 0) {
             console.info(`Gathering issues...`);
             sarifLog.runs[0].tool.driver.version =
-                currentScanSummary.staticScanSummaryDetails.engineVersion + ' ' +
-                    currentScanSummary.staticScanSummaryDetails.rulePackVersion;
+                'SCA ' + currentScanSummary.staticScanSummaryDetails.engineVersion + '; ' +
+                    'Rulepack ' + currentScanSummary.staticScanSummaryDetails.rulePackVersion;
             for (var i = 0; i < sarifToolDriverRules.length; i++) {
                 (_a = sarifLog.runs[0].tool.driver.rules) === null || _a === void 0 ? void 0 : _a.push(sarifToolDriverRules[i]);
             }

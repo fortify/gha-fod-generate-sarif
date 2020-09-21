@@ -274,7 +274,6 @@ async function getScanSummary(request: request.SuperAgentStatic, scanId:string) 
 async function getReleaseDetails(request: request.SuperAgentStatic, releaseId:string) : Promise<any> {
     console.debug(`Loading details for release ${releaseId}`);
     return request.get(`/api/v3/releases/${releaseId}`)
-        .query({filters: 'scantype:Static'})
         .then(resp=>{
             const releaseDetails = resp.body;
             return releaseDetails;

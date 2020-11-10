@@ -8,7 +8,7 @@ import fs from 'fs-extra';
 import path from 'path';
  
 const INPUT = {
-    base_url: core.getInput('base-url', { required: true }),
+    base_url: core.getInput('base-url', { required: true }).replace(/\/+$/g, ''),
     tenant: core.getInput('tenant', { required: false }),
     user: core.getInput('user', { required: false }),
     password: core.getInput('password', { required: false }),

@@ -6,7 +6,7 @@ This GitHub Action invokes the Fortify on Demand (FoD) API to generate a SARIF l
 
 ## Deprecation Notice
 
-This GitHub Action is being replaced by https://github.com/marketplace/actions/export-fortify-vulnerability-data, which provides:
+This GitHub Action is being replaced by https://github.com/marketplace/actions/export-fortify-vulnerability-data to allow customers to benefit from the following enhancements:
 
 * Support for both FoD and SSC
 * Support for additional output formats
